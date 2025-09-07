@@ -67,6 +67,7 @@ fun BaseChat(
                     if (composing.isNotBlank()) {
                         // Note: server schema for public chat messages is not specified in the repo.
                         // We send a generic WebSocketMessage to match frontend type contract.
+                        // TODO correct the payload
                         val payload = WebSocketMessage(
                             type = "public_chat_message",
                             data = buildJsonObject {
