@@ -1,5 +1,6 @@
 package ru.fromchat.ui.auth
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -16,16 +17,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.LoginRequest
+import ru.fromchat.api.apiRequest
 import ru.fromchat.ui.RowHeader
 
 @Composable
@@ -37,6 +38,8 @@ fun LoginScreen(
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
+
+        val scope = rememberCoroutineScope()
 
         Column(
             modifier = Modifier
@@ -84,12 +87,15 @@ fun LoginScreen(
                                 return@Button
                             }
 
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
+                            scope.launch {
+                                apiRequest(
+                                    onError = { message, e ->
+                                        Log.e("LoginScreen", "An error ocurred while logging in:", e)
+                                        alert = message
+                                    },
+                                    onSuccess = { onLoginSuccess() }
+                                ) {
                                     ApiClient.login(LoginRequest(username, password))
-                                    onLoginSuccess()
-                                } catch (e: Exception) {
-                                    alert = "Неверное имя пользователя или пароль"
                                 }
                             }
                         }

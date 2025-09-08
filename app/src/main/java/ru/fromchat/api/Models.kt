@@ -17,7 +17,7 @@ data class RegisterRequest(
 
 @Serializable
 data class ErrorResponse(
-    val message: String? = null
+    val detail: String
 )
 
 @Serializable

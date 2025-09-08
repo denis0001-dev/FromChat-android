@@ -16,16 +16,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.RegisterRequest
+import ru.fromchat.api.apiRequest
 import ru.fromchat.ui.RowHeader
 
 @Composable
@@ -37,6 +37,8 @@ fun RegisterScreen(
         var password by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
+
+        val scope = rememberCoroutineScope()
 
         Column(
             modifier = Modifier
@@ -105,8 +107,14 @@ fun RegisterScreen(
                         }
 
                         // Send the register request
-                        CoroutineScope(Dispatchers.IO).launch {
-                            try {
+                        scope.launch {
+                            apiRequest(
+                                onError = { message, e ->
+                                    Log.d("RegisterScreen", "Error while registering:", e)
+                                    alert = message
+                                },
+                                onSuccess = { onRegistered() }
+                            ) {
                                 ApiClient.register(
                                     RegisterRequest(
                                         username,
@@ -114,10 +122,6 @@ fun RegisterScreen(
                                         confirmPassword
                                     )
                                 )
-                                onRegistered()
-                            } catch (e: Exception) {
-                                Log.d("RegisterScreen", "Error while registering:", e)
-                                alert = "Ошибка при регистрации"
                             }
                         }
                     }
