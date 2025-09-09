@@ -1,6 +1,7 @@
 package ru.fromchat.api
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class LoginRequest(
@@ -38,6 +39,35 @@ data class LoginResponse(
     val token: String
 )
 
+@Serializable
+data class MessagesResponse(
+    val status: String,
+    val messages: List<Message>
+)
+
+@Serializable
+data class Message(
+    val id: Int,
+    val content: String,
+    val timestamp: String,
+    val is_read: Boolean,
+    val is_edited: Boolean,
+    val username: String,
+    val profile_picture: String?,
+    val reply_to: Message?
+)
+
+@Serializable
+data class SendMessageRequest(
+    val content: String
+)
+
+@Serializable
+data class SendMessageResponse(
+    val status: String,
+    val message: Message
+)
+
 // WebSocket types mirror frontend src/core/types.d.ts
 @Serializable
 data class WebSocketCredentials(
@@ -55,6 +85,6 @@ data class WebSocketError(
 data class WebSocketMessage(
     val type: String,
     val credentials: WebSocketCredentials? = null,
-    val data: kotlinx.serialization.json.JsonElement? = null,
+    val data: JsonElement? = null,
     val error: WebSocketError? = null
 )

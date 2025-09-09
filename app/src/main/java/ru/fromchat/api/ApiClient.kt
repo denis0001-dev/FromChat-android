@@ -7,6 +7,8 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -44,6 +46,10 @@ object ApiClient {
     var token: String? = null
         private set
 
+    @Volatile
+    var user: User? = null
+        private set
+
     suspend fun login(request: LoginRequest) =
         http
             .post("https://fromchat.ru/api/login") {
@@ -52,7 +58,10 @@ object ApiClient {
             }
             .failOnError()
             .body<LoginResponse>()
-            .also { token = it.token }
+            .also {
+                token = it.token
+                user = it.user
+            }
 
     suspend fun register(request: RegisterRequest) =
         http
@@ -61,4 +70,22 @@ object ApiClient {
                 setBody(request)
             }
             .failOnError()
+
+    suspend fun getMessages() =
+        http
+            .get("https://fromchat.ru/api/get_messages") {
+                contentType(ContentType.Application.Json)
+            }
+            .failOnError()
+            .body<MessagesResponse>()
+
+    suspend fun send(message: String) =
+        http
+            .post("https://fromchat.ru/api/send_message") {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token!!)
+                setBody(SendMessageRequest(message))
+            }
+            .failOnError()
+            .body<SendMessageResponse>()
 }

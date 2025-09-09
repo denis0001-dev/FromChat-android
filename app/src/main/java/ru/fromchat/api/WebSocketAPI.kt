@@ -1,5 +1,6 @@
 package ru.fromchat.api
 
+import android.util.Log
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.http.HttpMethod
@@ -42,6 +43,7 @@ object WebSocketManager {
     @Volatile private var session: DefaultClientWebSocketSession? = null
 
     fun connect() {
+        Log.d("WebSocketManager", "Connecting to WebSocket")
         if (connecting) return
         connecting = true
 
@@ -61,20 +63,25 @@ object WebSocketManager {
                     ) {
                         session = this
 
+                        Log.d("WebSocketManager", "WebSocket connected")
                         for (frame in incoming) {
                             val text = (frame as? Frame.Text)?.readText() ?: continue
+                            Log.d("WebSocketManager", "Received payload: $text")
                             try {
-                                val msg = json.decodeFromString(WebSocketMessage.serializer(), text)
+                                val msg = json.decodeFromString<WebSocketMessage>(text)
                                 globalHandler?.invoke(msg)
                                 _messages.emit(msg)
-                            } catch (_: Throwable) {
+                            } catch (e: Throwable) {
+                                Log.w("WebSocketManager", "Received malformed payload:", e)
                                 // ignore malformed
                             }
                         }
                     }
-                } catch (_: Throwable) {
+                } catch (e: Throwable) {
+                    Log.w("WebSocketManager", "An error occurred:", e)
                     delay(3000)
                 } finally {
+                    Log.w("WebSocketManager", "WebSocket disconnected")
                     session = null
                 }
             }
