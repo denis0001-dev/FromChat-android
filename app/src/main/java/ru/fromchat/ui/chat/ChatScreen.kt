@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -20,13 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.fromchat.ui.LocalNavController
 
 enum class ChatTab { CHATS, CONTACTS, DMS }
 
 @Composable
 fun ChatScreen() {
     var selectedTab by remember { mutableStateOf(ChatTab.CHATS) }
-    var activeChat by remember { mutableStateOf<String?>(null) }
+    val navController = LocalNavController.current
 
     Scaffold(
         bottomBar = {
@@ -51,16 +53,17 @@ fun ChatScreen() {
                 )
             }
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(12.dp)) {
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(12.dp)) {
             when (selectedTab) {
                 ChatTab.CHATS -> {
-                    if (activeChat == null) {
-                        Text("Общий чат", modifier = Modifier.clickable { activeChat = "Общий чат" }.padding(8.dp))
-                        Text("Общий чат 2", modifier = Modifier.clickable { activeChat = "Общий чат 2" }.padding(8.dp))
-                    } else {
-                        BaseChat(chatTitle = activeChat!!)
-                    }
+                    ListItem(
+                        headlineContent = { Text("Public chat") },
+                        supportingContent = { Text("You: last message") },
+                        modifier = Modifier.clickable {
+                            navController.navigate("chats/publicChat")
+                        }
+                    )
                 }
                 ChatTab.CONTACTS -> {
                     Text("Скоро будет...")
