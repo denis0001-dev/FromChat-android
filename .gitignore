@@ -17,3 +17,6 @@ build
 .externalNativeBuild
 .cxx
 local.properties
+
+keys
+releases

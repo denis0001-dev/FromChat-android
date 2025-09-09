@@ -20,7 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.fromchat.R
 import ru.fromchat.ui.LocalNavController
 
 enum class ChatTab { CHATS, CONTACTS, DMS }
@@ -36,19 +38,19 @@ fun ChatScreen() {
                 NavigationBarItem(
                     selected = selectedTab == ChatTab.CHATS,
                     onClick = { selectedTab = ChatTab.CHATS },
-                    label = { Text("Чаты") },
+                    label = { Text(stringResource(R.string.chats)) },
                     icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == ChatTab.CONTACTS,
                     onClick = { selectedTab = ChatTab.CONTACTS },
-                    label = { Text("Контакты") },
+                    label = { Text(stringResource(R.string.contacts)) },
                     icon = { Icon(Icons.Filled.Contacts, contentDescription = null) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == ChatTab.DMS,
                     onClick = { selectedTab = ChatTab.DMS },
-                    label = { Text("ЛС") },
+                    label = { Text(stringResource(R.string.dms)) },
                     icon = { Icon(Icons.Filled.Mail, contentDescription = null) }
                 )
             }
@@ -58,18 +60,18 @@ fun ChatScreen() {
             when (selectedTab) {
                 ChatTab.CHATS -> {
                     ListItem(
-                        headlineContent = { Text("Public chat") },
-                        supportingContent = { Text("You: last message") },
+                        headlineContent = { Text(stringResource(R.string.public_chat)) },
+                        supportingContent = { Text(stringResource(R.string.chat_last_mesaage)) },
                         modifier = Modifier.clickable {
                             navController.navigate("chats/publicChat")
                         }
                     )
                 }
                 ChatTab.CONTACTS -> {
-                    Text("Скоро будет...")
+                    Text(stringResource(R.string.coming_soon))
                 }
                 ChatTab.DMS -> {
-                    Text("Скоро будет...")
+                    Text(stringResource(R.string.coming_soon))
                 }
             }
         }

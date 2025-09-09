@@ -1,4 +1,7 @@
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -27,10 +30,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreProperties = Properties().apply {
+                load(FileInputStream(rootProject.file("keys/keystore.properties")))
+            }
+            storeFile = rootProject.file("keys/release.jks")
+            keyAlias = "release"
+            storePassword = keystoreProperties["storePassword"].toString()
+            keyPassword = keystoreProperties["keyPassword"].toString()
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 

@@ -1,5 +1,6 @@
 package ru.fromchat.api
 
+import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -54,7 +55,7 @@ object ApiClient {
         http
             .post("https://fromchat.ru/api/login") {
                 contentType(ContentType.Application.Json)
-                setBody(request)
+                setBody(request.also { Log.d("ApiClient", "Login request: $it") })
             }
             .failOnError()
             .body<LoginResponse>()

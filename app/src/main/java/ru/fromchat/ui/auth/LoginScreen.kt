@@ -1,11 +1,14 @@
 package ru.fromchat.ui.auth
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.Button
@@ -21,9 +24,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import ru.fromchat.R
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.LoginRequest
 import ru.fromchat.api.apiRequest
@@ -34,7 +39,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    Scaffold { innerPadding ->
+    Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
@@ -44,20 +49,21 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 RowHeader(
                     icon = Icons.AutoMirrored.Filled.Login,
-                    title = "Welcome!",
-                    subtitle = "Log in to your account"
+                    title = stringResource(R.string.welcome),
+                    subtitle = stringResource(R.string.login_d)
                 )
 
                 if (alert != null) {
@@ -67,44 +73,45 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Имя пользователя") },
+                    label = { Text(stringResource(R.string.username)) },
                     singleLine = true
                 )
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Пароль") },
+                    label = { Text(stringResource(R.string.password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val alert_error_filling = stringResource(R.string.fill_all_fields)
+
                     Button(
                         onClick = {
                             if (username.isBlank() || password.isBlank()) {
-                                alert = "Пожалуйста, заполните все поля"
+                                alert = alert_error_filling
                                 return@Button
                             }
 
                             scope.launch {
                                 apiRequest(
-                                    onError = { message, e ->
-                                        Log.e("LoginScreen", "An error ocurred while logging in:", e)
+                                    onError = { message, _ ->
                                         alert = message
                                     },
                                     onSuccess = { onLoginSuccess() }
                                 ) {
-                                    ApiClient.login(LoginRequest(username, password))
+                                    ApiClient.login(LoginRequest(username.trim(), password.trim()))
                                 }
                             }
                         }
                     ) {
-                        Text("Войти")
+                        Text(stringResource(R.string.login))
                     }
 
                     Button(onClick = onNavigateToRegister) {
-                        Text("Зарегистрируйтесь")
+                        Text(stringResource(R.string.register_button))
                     }
                 }
             }
