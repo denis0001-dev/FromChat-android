@@ -3,11 +3,19 @@ package ru.fromchat.ui.auth
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -26,30 +34,33 @@ import kotlinx.coroutines.launch
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.RegisterRequest
 import ru.fromchat.api.apiRequest
+import ru.fromchat.ui.LocalNavController
 import ru.fromchat.ui.RowHeader
 
 @Composable
 fun RegisterScreen(
     onRegistered: () -> Unit
 ) {
-    Scaffold { innerPadding ->
+    Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
 
         val scope = rememberCoroutineScope()
+        val navController = LocalNavController.current
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -86,47 +97,58 @@ fun RegisterScreen(
                     visualTransformation = PasswordVisualTransformation()
                 )
 
-                Button(
-                    onClick = {
-                        // Checks
-                        if (username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                            alert = "Пожалуйста, заполните все поля"
-                            return@Button
-                        }
-                        if (password != confirmPassword) {
-                            alert = "Пароли не совпадают"
-                            return@Button
-                        }
-                        if (username.length !in 3..20) {
-                            alert = "Имя пользователя должно быть от 3 до 20 символов"
-                            return@Button
-                        }
-                        if (password.length !in 5..50) {
-                            alert = "Пароль должен быть от 5 до 50 символов"
-                            return@Button
-                        }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconButton(
+                        onClick = { navController.navigateUp() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
 
-                        // Send the register request
-                        scope.launch {
-                            apiRequest(
-                                onError = { message, e ->
-                                    Log.d("RegisterScreen", "Error while registering:", e)
-                                    alert = message
-                                },
-                                onSuccess = { onRegistered() }
-                            ) {
-                                ApiClient.register(
-                                    RegisterRequest(
-                                        username,
-                                        password,
-                                        confirmPassword
+                    Button(
+                        onClick = {
+                            // Checks
+                            if (username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                                alert = "Пожалуйста, заполните все поля"
+                                return@Button
+                            }
+                            if (password != confirmPassword) {
+                                alert = "Пароли не совпадают"
+                                return@Button
+                            }
+                            if (username.length !in 3..20) {
+                                alert = "Имя пользователя должно быть от 3 до 20 символов"
+                                return@Button
+                            }
+                            if (password.length !in 5..50) {
+                                alert = "Пароль должен быть от 5 до 50 символов"
+                                return@Button
+                            }
+
+                            // Send the register request
+                            scope.launch {
+                                apiRequest(
+                                    onError = { message, e ->
+                                        Log.d("RegisterScreen", "Error while registering:", e)
+                                        alert = message
+                                    },
+                                    onSuccess = { onRegistered() }
+                                ) {
+                                    ApiClient.register(
+                                        RegisterRequest(
+                                            username,
+                                            password,
+                                            confirmPassword
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
+                    ) {
+                        Text("Зарегистрироваться")
                     }
-                ) {
-                    Text("Зарегистрироваться")
                 }
             }
         }

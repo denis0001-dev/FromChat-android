@@ -1,11 +1,14 @@
 package ru.fromchat.ui.auth
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.Button
@@ -34,7 +37,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    Scaffold { innerPadding ->
+    Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
@@ -44,13 +47,14 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -89,13 +93,12 @@ fun LoginScreen(
 
                             scope.launch {
                                 apiRequest(
-                                    onError = { message, e ->
-                                        Log.e("LoginScreen", "An error ocurred while logging in:", e)
+                                    onError = { message, _ ->
                                         alert = message
                                     },
                                     onSuccess = { onLoginSuccess() }
                                 ) {
-                                    ApiClient.login(LoginRequest(username, password))
+                                    ApiClient.login(LoginRequest(username.trim(), password.trim()))
                                 }
                             }
                         }
