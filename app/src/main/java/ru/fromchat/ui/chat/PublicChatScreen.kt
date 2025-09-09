@@ -6,19 +6,30 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +72,41 @@ fun PublicChatScreen() {
                     }
                 }
             )
+        },
+        bottomBar = {
+            Row(
+                Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.exclude(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                        )
+                    )
+                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val message = rememberTextFieldState()
+
+                BasicTextField(
+                    state = message,
+                    modifier = Modifier.weight(1f),
+                    textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 4)
+                )
+
+                IconButton(
+                    onClick = {
+                        // send
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send"
+                    )
+                }
+            }
         }
     ) { innerPadding ->
         Column(
