@@ -19,7 +19,7 @@ val LocalNavController = compositionLocalOf<NavController> { error("") }
 
 @Composable
 fun App() {
-    FromChatTheme {
+    FromChatTheme(dynamicColor = false) {
         val navController = rememberNavController()
         val animationSpec = tween<IntOffset>(400)
 
