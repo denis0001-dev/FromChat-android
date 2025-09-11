@@ -55,7 +55,9 @@ data class Message(
     val username: String,
     val profile_picture: String?,
     val reply_to: Message?
-)
+) {
+    val utcTimestamp = "${timestamp}Z"
+}
 
 @Serializable
 data class SendMessageRequest(

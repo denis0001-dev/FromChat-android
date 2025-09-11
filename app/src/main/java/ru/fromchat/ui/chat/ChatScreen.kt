@@ -21,44 +21,45 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import ru.fromchat.R
 import ru.fromchat.ui.LocalNavController
 
-enum class ChatTab { CHATS, CONTACTS, DMS }
-
 @Composable
 fun ChatScreen() {
-    var selectedTab by remember { mutableStateOf(ChatTab.CHATS) }
+    var selectedTab by remember { mutableStateOf("chats") }
     val navController = LocalNavController.current
 
     Scaffold(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = selectedTab == ChatTab.CHATS,
-                    onClick = { selectedTab = ChatTab.CHATS },
+                    selected = selectedTab == "chats",
+                    onClick = { selectedTab = "chats" },
                     label = { Text(stringResource(R.string.chats)) },
                     icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) }
                 )
                 NavigationBarItem(
-                    selected = selectedTab == ChatTab.CONTACTS,
-                    onClick = { selectedTab = ChatTab.CONTACTS },
+                    selected = selectedTab == "contacts",
+                    onClick = { selectedTab = "contacts" },
                     label = { Text(stringResource(R.string.contacts)) },
                     icon = { Icon(Icons.Filled.Contacts, contentDescription = null) }
                 )
                 NavigationBarItem(
-                    selected = selectedTab == ChatTab.DMS,
-                    onClick = { selectedTab = ChatTab.DMS },
+                    selected = selectedTab == "dms",
+                    onClick = { selectedTab = "dms" },
                     label = { Text(stringResource(R.string.dms)) },
                     icon = { Icon(Icons.Filled.Mail, contentDescription = null) }
                 )
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             when (selectedTab) {
-                ChatTab.CHATS -> {
+                "chats" -> {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.public_chat)) },
                         supportingContent = { Text(stringResource(R.string.chat_last_mesaage)) },
@@ -67,10 +68,10 @@ fun ChatScreen() {
                         }
                     )
                 }
-                ChatTab.CONTACTS -> {
+                "contacts" -> {
                     Text(stringResource(R.string.coming_soon))
                 }
-                ChatTab.DMS -> {
+                "dms" -> {
                     Text(stringResource(R.string.coming_soon))
                 }
             }

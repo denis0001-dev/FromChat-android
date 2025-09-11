@@ -1,7 +1,6 @@
 package ru.fromchat.ui.chat
 
 import android.util.Log
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,16 +58,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
+import ru.fromchat.DATETIME_FORMAT
 import ru.fromchat.R
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.apiRequest
 import ru.fromchat.ui.LocalNavController
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun PublicChatScreen() {
     val navController = LocalNavController.current
@@ -221,10 +227,10 @@ fun PublicChatScreen() {
                         Modifier
                             .clip(
                                 RoundedCornerShape(
-                                    if (isAuthor) 16.dp else 5.dp,
-                                    16.dp,
-                                    if (isAuthor) 5.dp else 16.dp,
-                                    16.dp
+                                    topStart = if (isAuthor) 16.dp else 5.dp,
+                                    topEnd = 16.dp,
+                                    bottomEnd = if (isAuthor) 5.dp else 16.dp,
+                                    bottomStart = 16.dp
                                 )
                             )
                             .background(background)
@@ -260,7 +266,10 @@ fun PublicChatScreen() {
                     text = it.content,
                     isAuthor = it.username == ApiClient.user!!.username,
                     isRead = it.is_read,
-                    timestamp = it.timestamp
+                    timestamp = Instant
+                        .parse(it.utcTimestamp)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(DATETIME_FORMAT)
                 )
             }
         }
