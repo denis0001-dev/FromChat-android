@@ -13,6 +13,7 @@ plugins {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_11)
+        freeCompilerArgs.add("-Xsuppress-warning=NOTHING_TO_INLINE")
     }
 }
 

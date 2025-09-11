@@ -1,4 +1,4 @@
-package ru.fromchat.ui.chat
+package ru.fromchat.ui
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -69,7 +69,6 @@ import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.apiRequest
-import ru.fromchat.ui.LocalNavController
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 

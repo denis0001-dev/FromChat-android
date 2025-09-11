@@ -13,8 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ru.fromchat.ui.auth.LoginScreen
 import ru.fromchat.ui.auth.RegisterScreen
-import ru.fromchat.ui.chat.ChatScreen
-import ru.fromchat.ui.chat.PublicChatScreen
+import ru.fromchat.ui.main.MainScreen
 
 val LocalNavController = compositionLocalOf<NavController> { error("") }
 
@@ -68,7 +67,7 @@ fun App() {
                     )
                 }
 
-                composable("chat") { ChatScreen() }
+                composable("chat") { MainScreen() }
 
                 composable("chats/publicChat") {
                     PublicChatScreen()

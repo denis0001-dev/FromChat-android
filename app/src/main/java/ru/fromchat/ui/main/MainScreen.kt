@@ -1,15 +1,16 @@
-package ru.fromchat.ui.chat
+package ru.fromchat.ui.main
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -22,12 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import ru.fromchat.R
-import ru.fromchat.ui.LocalNavController
+import ru.fromchat.utils.exclude
 
 @Composable
-fun ChatScreen() {
+fun MainScreen() {
     var selectedTab by remember { mutableStateOf("chats") }
-    val navController = LocalNavController.current
 
     Scaffold(
         bottomBar = {
@@ -51,7 +51,8 @@ fun ChatScreen() {
                     icon = { Icon(Icons.Filled.Mail, contentDescription = null) }
                 )
             }
-        }
+        },
+        contentWindowInsets = WindowInsets.safeDrawing.exclude(WindowInsetsSides.Top)
     ) { innerPadding ->
         Column(
             Modifier
@@ -59,15 +60,7 @@ fun ChatScreen() {
                 .padding(innerPadding)
         ) {
             when (selectedTab) {
-                "chats" -> {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.public_chat)) },
-                        supportingContent = { Text(stringResource(R.string.chat_last_mesaage)) },
-                        modifier = Modifier.clickable {
-                            navController.navigate("chats/publicChat")
-                        }
-                    )
-                }
+                "chats" -> ChatsTab()
                 "contacts" -> {
                     Text(stringResource(R.string.coming_soon))
                 }
