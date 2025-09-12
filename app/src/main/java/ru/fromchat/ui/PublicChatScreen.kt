@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -69,6 +67,7 @@ import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.apiRequest
+import ru.fromchat.utils.exclude
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -82,13 +81,11 @@ fun PublicChatScreen() {
     val messages = remember { mutableStateListOf<Message>() }
 
     LaunchedEffect(Unit) {
-        val response = apiRequest {
+        apiRequest {
             ApiClient.getMessages()
-        }
-
-        if (response.isSuccess) {
+        }.onSuccess {
             messages.clear()
-            messages += response.getOrThrow().messages
+            messages += it.messages
         }
 
         WebSocketManager.connect()
@@ -137,11 +134,7 @@ fun PublicChatScreen() {
                 Modifier
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .fillMaxWidth()
-                    .windowInsetsPadding(
-                        WindowInsets.safeDrawing.exclude(
-                            WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                        )
-                    )
+                    .windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsetsSides.Top))
                     .padding(vertical = 8.dp, horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
