@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
@@ -52,7 +53,8 @@ fun MainScreen() {
                 )
             }
         },
-        contentWindowInsets = WindowInsets.safeDrawing.exclude(WindowInsetsSides.Top)
+        contentWindowInsets = WindowInsets.safeDrawing.exclude(WindowInsetsSides.Top),
+        modifier = Modifier.imePadding()
     ) { innerPadding ->
         Column(
             Modifier

@@ -61,11 +61,16 @@ import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.DATETIME_FORMAT
 import ru.fromchat.R
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
+import ru.fromchat.api.SendMessageRequest
+import ru.fromchat.api.SendMessageResponse
+import ru.fromchat.api.WebSocketCredentials
 import ru.fromchat.api.WebSocketManager
+import ru.fromchat.api.WebSocketMessage
 import ru.fromchat.api.apiRequest
 import ru.fromchat.utils.exclude
 import kotlin.time.ExperimentalTime
@@ -89,14 +94,16 @@ fun PublicChatScreen() {
         }
 
         WebSocketManager.connect()
-        WebSocketManager.setGlobalMessageHandler { msg ->
+        WebSocketManager.addGlobalMessageHandler { msg ->
             scope.launch {
-                try {
-                    messages += Json.decodeFromJsonElement<Message>(msg.data!!)
-                    delay(500)
-                    scrollState.animateScrollTo(scrollState.maxValue)
-                } catch (e: Exception) {
-                    Log.e("PublicChatScreen", "Failed to process incoming message:", e)
+                if (msg.type == "newMessage") {
+                    try {
+                        messages += Json.decodeFromJsonElement<Message>(msg.data!!)
+                        delay(500)
+                        scrollState.animateScrollTo(scrollState.maxValue)
+                    } catch (e: Exception) {
+                        Log.e("PublicChatScreen", "Failed to process incoming message:", e)
+                    }
                 }
             }
         }
@@ -132,6 +139,7 @@ fun PublicChatScreen() {
         bottomBar = {
             Row(
                 Modifier
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsetsSides.Top))
@@ -162,17 +170,30 @@ fun PublicChatScreen() {
                 IconButton(
                     onClick = {
                         scope.launch {
-                            val response = apiRequest {
-                                ApiClient.send(message.text.toString())
-                            }
-
-                            message.setTextAndPlaceCursorAtEnd("")
-
-                            if (response.isSuccess) {
-                                messages += response.getOrThrow().message
+                            runCatching {
+                                Json.decodeFromJsonElement<SendMessageResponse>(
+                                    WebSocketManager.request(
+                                        WebSocketMessage(
+                                            type = "sendMessage",
+                                            credentials = WebSocketCredentials(
+                                                scheme = "Bearer",
+                                                credentials = ApiClient.token!!
+                                            ),
+                                            data = Json.encodeToJsonElement(
+                                                SendMessageRequest(
+                                                    content = "${message.text}"
+                                                )
+                                            )
+                                        )
+                                    )!!.data!!
+                                )
+                            }.getOrNull()?.let {
+                                messages += it.message
                                 delay(500)
                                 scrollState.animateScrollTo(scrollState.maxValue)
                             }
+
+                            message.setTextAndPlaceCursorAtEnd("")
                         }
                     }
                 ) {

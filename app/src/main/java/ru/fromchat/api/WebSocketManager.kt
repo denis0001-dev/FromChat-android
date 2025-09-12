@@ -13,7 +13,6 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import ru.fromchat.API_HOST
+import kotlin.coroutines.suspendCoroutine
 
 object WebSocketManager {
     // Config
@@ -32,10 +32,14 @@ object WebSocketManager {
     val messages = _messages.asSharedFlow()
 
     @Volatile
-    private var globalHandler: ((WebSocketMessage) -> Unit)? = null
+    private var globalHandlers = mutableListOf<((WebSocketMessage) -> Unit)>()
 
-    fun setGlobalMessageHandler(handler: ((WebSocketMessage) -> Unit)?) {
-        globalHandler = handler
+    fun addGlobalMessageHandler(handler: ((WebSocketMessage) -> Unit)) {
+        globalHandlers += handler
+    }
+
+    fun removeGlobalMessageHandler(handler: ((WebSocketMessage) -> Unit)) {
+        globalHandlers -= handler
     }
 
     // State
@@ -69,7 +73,7 @@ object WebSocketManager {
                             Log.d("WebSocketManager", "Received payload: $text")
                             try {
                                 val msg = json.decodeFromString<WebSocketMessage>(text)
-                                globalHandler?.invoke(msg)
+                                globalHandlers.forEach { it(msg) }
                                 _messages.emit(msg)
                             } catch (e: Throwable) {
                                 Log.w("WebSocketManager", "Received malformed payload:", e)
@@ -89,38 +93,30 @@ object WebSocketManager {
     }
 
     suspend fun send(message: WebSocketMessage) {
-        val payload = json.encodeToString(WebSocketMessage.serializer(), message)
-        ApiClient.http.webSocket(
-            method = HttpMethod.Get,
-            host = API_HOST,
-            request = {
-                url {
-                    protocol = URLProtocol.WSS
-                    host = "fromchat.ru"
-                    encodedPath = "/api/chat/ws"
-                }
-            }
-        ) {
-            send(Frame.Text(payload))
-        }
+        session?.send(Frame.Text(json.encodeToString(message)))
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun request(message: WebSocketMessage, timeoutMs: Long = 10_000): WebSocketMessage? {
-        val ch = Channel<WebSocketMessage>(capacity = 1)
-        val handler: (WebSocketMessage) -> Unit = {
-            ch.trySend(it)
-        }
-        setGlobalMessageHandler(handler)
+        Log.d("WebSocketManager", "WebSocket request: $message")
+        var handler: ((WebSocketMessage) -> Unit)? = null
 
         return try {
             send(message)
-            withTimeout(timeoutMs) { ch.receive() }
+            withTimeout(timeoutMs) {
+                suspendCoroutine { continuation ->
+                    handler = {
+                        continuation.resumeWith(Result.success(it))
+                        removeGlobalMessageHandler(handler!!)
+                    }
+                    addGlobalMessageHandler(handler)
+                }
+            }
         } catch (_: TimeoutCancellationException) {
+            Log.w("WebSocketManager", "Request timed out")
             null
         } finally {
-            setGlobalMessageHandler(null)
-            ch.close()
+            handler?.let { removeGlobalMessageHandler(it) }
         }
     }
 
