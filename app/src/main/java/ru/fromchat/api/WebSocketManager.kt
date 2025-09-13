@@ -31,8 +31,7 @@ object WebSocketManager {
     private val _messages = MutableSharedFlow<WebSocketMessage>(replay = 0, extraBufferCapacity = 64)
     val messages = _messages.asSharedFlow()
 
-    @Volatile
-    private var globalHandlers = mutableListOf<((WebSocketMessage) -> Unit)>()
+    private val globalHandlers = mutableListOf<((WebSocketMessage) -> Unit)>()
 
     fun addGlobalMessageHandler(handler: ((WebSocketMessage) -> Unit)) {
         globalHandlers += handler

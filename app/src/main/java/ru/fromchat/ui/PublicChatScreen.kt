@@ -1,6 +1,9 @@
 package ru.fromchat.ui
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -29,8 +33,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -51,11 +57,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
@@ -76,7 +86,7 @@ import ru.fromchat.utils.exclude
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PublicChatScreen() {
     val navController = LocalNavController.current
@@ -84,32 +94,40 @@ fun PublicChatScreen() {
     val scrollState = rememberScrollState()
 
     val messages = remember { mutableStateListOf<Message>() }
+    var loading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        apiRequest {
-            ApiClient.getMessages()
-        }.onSuccess {
-            messages.clear()
-            messages += it.messages
-        }
+        val coroutineContext = coroutineContext
 
-        WebSocketManager.connect()
-        WebSocketManager.addGlobalMessageHandler { msg ->
-            scope.launch {
-                if (msg.type == "newMessage") {
-                    try {
-                        messages += Json.decodeFromJsonElement<Message>(msg.data!!)
-                        delay(500)
-                        scrollState.animateScrollTo(scrollState.maxValue)
-                    } catch (e: Exception) {
-                        Log.e("PublicChatScreen", "Failed to process incoming message:", e)
+        CoroutineScope(Dispatchers.IO).launch {
+            apiRequest {
+                ApiClient.getMessages()
+            }.onSuccess {
+                messages.clear()
+                messages += it.messages
+            }
+
+            WebSocketManager.connect()
+            WebSocketManager.addGlobalMessageHandler { msg ->
+                scope.launch {
+                    if (msg.type == "newMessage") {
+                        try {
+                            messages += Json.decodeFromJsonElement<Message>(msg.data!!)
+                            delay(500)
+                            scrollState.animateScrollTo(scrollState.maxValue)
+                        } catch (e: Exception) {
+                            Log.e("PublicChatScreen", "Failed to process incoming message:", e)
+                        }
                     }
                 }
             }
-        }
 
-        delay(500)
-        scrollState.animateScrollTo(scrollState.maxValue)
+            delay(500)
+            withContext(coroutineContext) {
+                scrollState.scrollTo(scrollState.maxValue)
+            }
+            loading = false
+        }.join()
     }
 
     Scaffold(
@@ -205,85 +223,112 @@ fun PublicChatScreen() {
             }
         }
     ) { innerPadding ->
-        Column(
-            Modifier
-                .padding(innerPadding)
-                .verticalScroll(scrollState)
-        ) {
-            @Composable
-            fun Message(
-                text: String,
-                isAuthor: Boolean,
-                isRead: Boolean,
-                timestamp: String
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                Modifier
+                    .padding(innerPadding)
+                    .verticalScroll(scrollState)
             ) {
-                var rowWidth by remember { mutableStateOf(0.dp) }
-                val density = LocalDensity.current
-
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .fillMaxWidth()
-                        .onSizeChanged {
-                            rowWidth = with (density) {
-                                it.width.toDp()
-                            }
-                        },
-                    horizontalArrangement = if (isAuthor) Arrangement.End else Arrangement.Start
+                @Composable
+                fun Message(
+                    text: String,
+                    isAuthor: Boolean,
+                    isRead: Boolean,
+                    timestamp: String,
+                    username: String
                 ) {
-                    val background =
-                        if (isAuthor)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainer
+                    var rowWidth by remember { mutableStateOf(0.dp) }
+                    val density = LocalDensity.current
 
-                    Column(
-                        Modifier
-                            .clip(
-                                RoundedCornerShape(
-                                    topStart = if (isAuthor) 16.dp else 5.dp,
-                                    topEnd = 16.dp,
-                                    bottomEnd = if (isAuthor) 5.dp else 16.dp,
-                                    bottomStart = 16.dp
-                                )
-                            )
-                            .background(background)
-                            .padding(10.dp)
-                            .width(IntrinsicSize.Max)
-                            .widthIn(max = rowWidth * 0.80f)
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .fillMaxWidth()
+                            .onSizeChanged {
+                                rowWidth = with(density) {
+                                    it.width.toDp()
+                                }
+                            },
+                        horizontalArrangement = if (isAuthor) Arrangement.End else Arrangement.Start
                     ) {
-                        Text(text)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.End),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Spacer(Modifier.weight(1f))
-                            Text(
-                                text = timestamp,
-                                fontSize = 14.sp
-                            )
-                            if (isRead) {
-                                Icon(
-                                    imageVector = Icons.Filled.DoneAll,
-                                    contentDescription = "Read",
-                                    modifier = Modifier.size(17.dp)
+                        val background =
+                            if (isAuthor)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainer
+
+                        Column(
+                            Modifier
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = if (isAuthor) 16.dp else 5.dp,
+                                        topEnd = 16.dp,
+                                        bottomEnd = if (isAuthor) 5.dp else 16.dp,
+                                        bottomStart = 16.dp
+                                    )
                                 )
+                                .background(background)
+                                .padding(10.dp)
+                                .width(IntrinsicSize.Max)
+                                .widthIn(max = rowWidth * 0.80f)
+                        ) {
+                            if (!isAuthor) {
+                                Text(
+                                    text = username,
+                                    fontWeight = FontWeight.W600,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Text(text)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.End),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Spacer(Modifier.weight(1f))
+                                Text(
+                                    text = timestamp,
+                                    fontSize = 14.sp
+                                )
+                                if (isRead) {
+                                    Icon(
+                                        imageVector = Icons.Filled.DoneAll,
+                                        contentDescription = "Read",
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
+
+                messages.forEach {
+                    Message(
+                        text = it.content,
+                        isAuthor = it.username == ApiClient.user!!.username,
+                        isRead = it.is_read,
+                        timestamp = Instant
+                            .parse(it.utcTimestamp)
+                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                            .format(DATETIME_FORMAT),
+                        username = it.username
+                    )
+                }
             }
 
-            messages.forEach {
-                Message(
-                    text = it.content,
-                    isAuthor = it.username == ApiClient.user!!.username,
-                    isRead = it.is_read,
-                    timestamp = Instant
-                        .parse(it.utcTimestamp)
-                        .toLocalDateTime(TimeZone.currentSystemDefault())
-                        .format(DATETIME_FORMAT)
-                )
+            AnimatedVisibility(
+                visible = loading,
+                enter = EnterTransition.None,
+                exit = fadeOut()
+            ) {
+                Box(
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator(Modifier.size(70.dp))
+                }
             }
         }
     }
