@@ -21,13 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -61,11 +62,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
@@ -91,43 +89,45 @@ import kotlin.time.Instant
 fun PublicChatScreen() {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
 
     val messages = remember { mutableStateListOf<Message>() }
     var loading by remember { mutableStateOf(true) }
 
+    suspend fun scrollDown(animated: Boolean = true) {
+        Log.d("PublicChatScreen", "Scrolling down")
+        if (animated) {
+            listState.animateScrollToItem(messages.lastIndex)
+        } else {
+            listState.scrollToItem(messages.lastIndex)
+        }
+    }
+
     LaunchedEffect(Unit) {
-        val coroutineContext = coroutineContext
+        apiRequest {
+            ApiClient.getMessages()
+        }.onSuccess {
+            messages.clear()
+            messages += it.messages
+        }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            apiRequest {
-                ApiClient.getMessages()
-            }.onSuccess {
-                messages.clear()
-                messages += it.messages
-            }
-
-            WebSocketManager.connect()
-            WebSocketManager.addGlobalMessageHandler { msg ->
-                scope.launch {
-                    if (msg.type == "newMessage") {
-                        try {
-                            messages += Json.decodeFromJsonElement<Message>(msg.data!!)
-                            delay(500)
-                            scrollState.animateScrollTo(scrollState.maxValue)
-                        } catch (e: Exception) {
-                            Log.e("PublicChatScreen", "Failed to process incoming message:", e)
-                        }
+        WebSocketManager.connect()
+        WebSocketManager.addGlobalMessageHandler { msg ->
+            scope.launch {
+                if (msg.type == "newMessage") {
+                    try {
+                        messages += Json.decodeFromJsonElement<Message>(msg.data!!)
+                        scrollDown()
+                    } catch (e: Exception) {
+                        Log.e("PublicChatScreen", "Failed to process incoming message:", e)
                     }
                 }
             }
+        }
 
-            delay(500)
-            withContext(coroutineContext) {
-                scrollState.scrollTo(scrollState.maxValue)
-            }
-            loading = false
-        }.join()
+        delay(500)
+        scrollDown(false)
+        loading = false
     }
 
     Scaffold(
@@ -207,8 +207,7 @@ fun PublicChatScreen() {
                                 )
                             }.getOrNull()?.let {
                                 messages += it.message
-                                delay(500)
-                                scrollState.animateScrollTo(scrollState.maxValue)
+                                scrollDown()
                             }
 
                             message.setTextAndPlaceCursorAtEnd("")
@@ -224,10 +223,9 @@ fun PublicChatScreen() {
         }
     ) { innerPadding ->
         Box(Modifier.fillMaxSize()) {
-            Column(
-                Modifier
-                    .padding(innerPadding)
-                    .verticalScroll(scrollState)
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.padding(innerPadding)
             ) {
                 @Composable
                 fun Message(
@@ -302,7 +300,7 @@ fun PublicChatScreen() {
                     }
                 }
 
-                messages.forEach {
+                items(messages, { it.id }) {
                     Message(
                         text = it.content,
                         isAuthor = it.username == ApiClient.user!!.username,
