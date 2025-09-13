@@ -69,9 +69,7 @@ fun App() {
 
                 composable("chat") { MainScreen() }
 
-                composable("chats/publicChat") {
-                    PublicChatScreen()
-                }
+                composable("chats/publicChat") { PublicChatScreen() }
             }
         }
     }
