@@ -61,7 +61,8 @@ data class Message(
 
 @Serializable
 data class SendMessageRequest(
-    val content: String
+    val content: String,
+    val reply_to_id: Int? = null
 )
 
 @Serializable

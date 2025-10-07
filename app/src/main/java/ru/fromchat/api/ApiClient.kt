@@ -16,10 +16,11 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import ru.fromchat.API_HOST
 import ru.fromchat.utils.failOnError
 
 object ApiClient {
-    private val json = Json {
+    val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
@@ -53,7 +54,7 @@ object ApiClient {
 
     suspend fun login(request: LoginRequest) =
         http
-            .post("https://fromchat.ru/api/login") {
+            .post("$API_HOST/api/login") {
                 contentType(ContentType.Application.Json)
                 setBody(request.also { Log.d("ApiClient", "Login request: $it") })
             }
@@ -66,7 +67,7 @@ object ApiClient {
 
     suspend fun register(request: RegisterRequest) =
         http
-            .post("https://fromchat.ru/api/register") {
+            .post("$API_HOST/api/register") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -74,7 +75,7 @@ object ApiClient {
 
     suspend fun getMessages() =
         http
-            .get("https://fromchat.ru/api/get_messages") {
+            .get("$API_HOST/api/get_messages") {
                 contentType(ContentType.Application.Json)
             }
             .failOnError()
@@ -82,7 +83,7 @@ object ApiClient {
 
     suspend fun send(message: String) =
         http
-            .post("https://fromchat.ru/api/send_message") {
+            .post("$API_HOST/api/send_message") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token!!)
                 setBody(SendMessageRequest(message))

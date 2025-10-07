@@ -67,7 +67,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.DATETIME_FORMAT
@@ -75,7 +74,6 @@ import ru.fromchat.R
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.SendMessageRequest
-import ru.fromchat.api.SendMessageResponse
 import ru.fromchat.api.WebSocketCredentials
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.WebSocketMessage
@@ -116,8 +114,12 @@ fun PublicChatScreen() {
             scope.launch {
                 if (msg.type == "newMessage") {
                     try {
-                        messages += Json.decodeFromJsonElement<Message>(msg.data!!)
-                        scrollDown()
+                        val newMessage = ApiClient.json.decodeFromJsonElement<Message>(msg.data!!)
+                        // Check if message already exists to prevent duplicates
+                        if (messages.none { it.id == newMessage.id }) {
+                            messages += newMessage
+                            scrollDown()
+                        }
                     } catch (e: Exception) {
                         Log.e("PublicChatScreen", "Failed to process incoming message:", e)
                     }
@@ -188,29 +190,36 @@ fun PublicChatScreen() {
                 IconButton(
                     onClick = {
                         scope.launch {
-                            runCatching {
-                                Json.decodeFromJsonElement<SendMessageResponse>(
-                                    WebSocketManager.request(
-                                        WebSocketMessage(
-                                            type = "sendMessage",
-                                            credentials = WebSocketCredentials(
-                                                scheme = "Bearer",
-                                                credentials = ApiClient.token!!
-                                            ),
-                                            data = Json.encodeToJsonElement(
-                                                SendMessageRequest(
-                                                    content = "${message.text}"
-                                                )
+                            val messageText = "${message.text.trim()}"
+                            if (messageText.isEmpty()) return@launch
+                            
+                            try {
+                                val response = WebSocketManager.request(
+                                    WebSocketMessage(
+                                        type = "sendMessage",
+                                        credentials = WebSocketCredentials(
+                                            scheme = "Bearer",
+                                            credentials = ApiClient.token!!
+                                        ),
+                                        data = ApiClient.json.encodeToJsonElement(
+                                            SendMessageRequest(
+                                                content = messageText
                                             )
                                         )
-                                    )!!.data!!
+                                    )
                                 )
-                            }.getOrNull()?.let {
-                                messages += it.message
-                                scrollDown()
+                                
+                                if (response != null && response.error == null) {
+                                    message.setTextAndPlaceCursorAtEnd("")
+                                    Log.d("PublicChatScreen", "Message sent successfully")
+                                    // Message will be added to the list via WebSocket "newMessage" event
+                                } else {
+                                    Log.e("PublicChatScreen", "WebSocket error: ${response?.error}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("PublicChatScreen", "Failed to send message", e)
+                                // Could show a toast or error message to user here
                             }
-
-                            message.setTextAndPlaceCursorAtEnd("")
                         }
                     }
                 ) {

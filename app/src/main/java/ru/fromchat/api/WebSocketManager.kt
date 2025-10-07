@@ -3,9 +3,8 @@ package ru.fromchat.api
 import android.util.Log
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.url
 import io.ktor.http.HttpMethod
-import io.ktor.http.URLProtocol
-import io.ktor.http.encodedPath
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +19,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import ru.fromchat.API_HOST
+import ru.fromchat.WS_API_HOST
 import kotlin.coroutines.suspendCoroutine
 
 object WebSocketManager {
@@ -55,16 +54,12 @@ object WebSocketManager {
                 try {
                     ApiClient.http.webSocket(
                         method = HttpMethod.Get,
-                        host = API_HOST,
                         request = {
-                            url {
-                                protocol = URLProtocol.WSS
-                                host = "fromchat.ru"
-                                encodedPath = "/api/chat/ws"
-                            }
+                            url("$WS_API_HOST/api/chat/ws")
                         }
                     ) {
                         session = this
+                        connecting = false
 
                         Log.d("WebSocketManager", "WebSocket connected")
                         for (frame in incoming) {
@@ -82,17 +77,31 @@ object WebSocketManager {
                     }
                 } catch (e: Throwable) {
                     Log.w("WebSocketManager", "An error occurred:", e)
+                    connecting = false
+                    session = null
                     delay(3000)
                 } finally {
                     Log.w("WebSocketManager", "WebSocket disconnected")
                     session = null
+                    connecting = false
                 }
             }
         }
     }
 
     suspend fun send(message: WebSocketMessage) {
-        session?.send(Frame.Text(json.encodeToString(message)))
+        val session = session
+        if (session != null) {
+            try {
+                session.send(Frame.Text(json.encodeToString(message)))
+            } catch (e: Exception) {
+                Log.e("WebSocketManager", "Failed to send message", e)
+                throw e
+            }
+        } else {
+            Log.w("WebSocketManager", "Cannot send message: no active session")
+            throw IllegalStateException("No active WebSocket session")
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -101,18 +110,30 @@ object WebSocketManager {
         var handler: ((WebSocketMessage) -> Unit)? = null
 
         return try {
+            // Check if we have a valid session before sending
+            if (session == null) {
+                Log.w("WebSocketManager", "No active WebSocket session")
+                return null
+            }
+            
             send(message)
             withTimeout(timeoutMs) {
                 suspendCoroutine { continuation ->
-                    handler = {
-                        continuation.resumeWith(Result.success(it))
-                        removeGlobalMessageHandler(handler!!)
+                    handler = { response ->
+                        // Only process responses that match our request type
+                        if (response.type == message.type) {
+                            continuation.resumeWith(Result.success(response))
+                            removeGlobalMessageHandler(handler!!)
+                        }
                     }
                     addGlobalMessageHandler(handler)
                 }
             }
         } catch (_: TimeoutCancellationException) {
             Log.w("WebSocketManager", "Request timed out")
+            null
+        } catch (e: Exception) {
+            Log.e("WebSocketManager", "Request failed", e)
             null
         } finally {
             handler?.let { removeGlobalMessageHandler(it) }
