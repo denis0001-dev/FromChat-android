@@ -33,6 +33,7 @@ import ru.fromchat.api.ApiClient
 import ru.fromchat.api.LoginRequest
 import ru.fromchat.api.apiRequest
 import ru.fromchat.ui.RowHeader
+import ru.fromchat.utils.HashUtils
 
 @Composable
 fun LoginScreen(
@@ -95,14 +96,17 @@ fun LoginScreen(
                                 return@Button
                             }
 
+                            // Derive auth secret before sending (matches frontend implementation)
                             scope.launch {
+                                val derived = HashUtils.deriveAuthSecret(username.trim(), password.trim())
+                                
                                 apiRequest(
                                     onError = { message, _ ->
                                         alert = message
                                     },
                                     onSuccess = { onLoginSuccess() }
                                 ) {
-                                    ApiClient.login(LoginRequest(username.trim(), password.trim()))
+                                    ApiClient.login(LoginRequest(username.trim(), derived))
                                 }
                             }
                         }

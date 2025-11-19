@@ -9,8 +9,10 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -90,4 +92,22 @@ object ApiClient {
             }
             .failOnError()
             .body<SendMessageResponse>()
+
+    suspend fun editMessage(messageId: Int, content: String) =
+        http
+            .put("$API_HOST/api/edit_message/$messageId") {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token!!)
+                setBody(EditMessageRequest(content))
+            }
+            .failOnError()
+            .body<SendMessageResponse>()
+
+    suspend fun deleteMessage(messageId: Int) =
+        http
+            .delete("$API_HOST/api/delete_message/$messageId") {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token!!)
+            }
+            .failOnError()
 }

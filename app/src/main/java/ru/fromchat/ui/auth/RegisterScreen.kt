@@ -37,6 +37,7 @@ import ru.fromchat.api.RegisterRequest
 import ru.fromchat.api.apiRequest
 import ru.fromchat.ui.LocalNavController
 import ru.fromchat.ui.RowHeader
+import ru.fromchat.utils.HashUtils
 
 @Composable
 fun RegisterScreen(
@@ -44,6 +45,7 @@ fun RegisterScreen(
 ) {
     Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
+        var displayName by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }
@@ -83,6 +85,13 @@ fun RegisterScreen(
                 )
 
                 OutlinedTextField(
+                    value = displayName,
+                    onValueChange = { displayName = it },
+                    label = { Text("Display Name") },
+                    singleLine = true
+                )
+
+                OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.password)) },
@@ -116,7 +125,7 @@ fun RegisterScreen(
                     Button(
                         onClick = {
                             // Checks
-                            if (username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                            if (username.isBlank() || displayName.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
                                 alert = alert_error_filling
                                 return@Button
                             }
@@ -128,13 +137,19 @@ fun RegisterScreen(
                                 alert = alert_error_name_little
                                 return@Button
                             }
+                            if (displayName.isBlank() || displayName.length > 64) {
+                                alert = "Display name must be between 1 and 64 characters"
+                                return@Button
+                            }
                             if (password.length !in 5..50) {
                                 alert = alert_error_password_little
                                 return@Button
                             }
 
-                            // Send the register request
+                            // Derive auth secret before sending (matches frontend implementation)
                             scope.launch {
+                                val derived = HashUtils.deriveAuthSecret(username.trim(), password)
+                                
                                 apiRequest(
                                     onError = { message, _ ->
                                         alert = message
@@ -143,9 +158,10 @@ fun RegisterScreen(
                                 ) {
                                     ApiClient.register(
                                         RegisterRequest(
-                                            username,
-                                            password,
-                                            confirmPassword
+                                            username.trim(),
+                                            displayName.trim(),
+                                            derived,
+                                            derived
                                         )
                                     )
                                 }

@@ -12,6 +12,7 @@ data class LoginRequest(
 @Serializable
 data class RegisterRequest(
     val username: String,
+    val display_name: String,
     val password: String,
     val confirm_password: String
 )
@@ -48,13 +49,15 @@ data class MessagesResponse(
 @Serializable
 data class Message(
     val id: Int,
+    val user_id: Int,
     val content: String,
     val timestamp: String,
     val is_read: Boolean,
     val is_edited: Boolean,
     val username: String,
-    val profile_picture: String?,
-    val reply_to: Message?
+    val profile_picture: String? = null,
+    val verified: Boolean? = null,
+    val reply_to: Message? = null
 ) {
     val utcTimestamp = "${timestamp}Z"
 }
@@ -63,6 +66,11 @@ data class Message(
 data class SendMessageRequest(
     val content: String,
     val reply_to_id: Int? = null
+)
+
+@Serializable
+data class EditMessageRequest(
+    val content: String
 )
 
 @Serializable
