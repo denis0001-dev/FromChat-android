@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="show_pw" tools:keep="@string/show_pw">Show password</string>
+    <string name="hide_pw" tools:keep="@string/hide_pw">Hide password</string>
+    <string name="smthwentwrong" tools:keep="@string/smthwentwrong">Something went wrong</string>
+</resources>

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="utils">
+    <output-path>$PROJECT_DIR$/utils/build/libs</output-path>
+    <root id="archive" name="utils.jar">
+      <element id="module-output" name="FromChat.utils.androidMain" />
+    </root>
+  </artifact>
+</component>

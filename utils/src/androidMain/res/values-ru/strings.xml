@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="show_pw">Показать пароль</string>
+    <string name="hide_pw">Скрыть пароль</string>
+    <string name="smthwentwrong">Что-то пошло не так</string>
+</resources>
