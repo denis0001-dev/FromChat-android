@@ -62,7 +62,10 @@ fun App() {
             ) {
                 composable("login") {
                     LoginScreen(
-                        onLoginSuccess = { navController.navigate("chat") },
+                        onLoginSuccess = {
+                            navController.navigate("chat")
+                            navController.popBackStack()
+                        },
                         onNavigateToRegister = { navController.navigate("register") }
                     )
                 }

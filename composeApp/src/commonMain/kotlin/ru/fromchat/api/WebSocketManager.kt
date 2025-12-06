@@ -1,6 +1,5 @@
 package ru.fromchat.api
 
-import ru.fromchat.core.Logger
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.url
@@ -10,6 +9,7 @@ import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import ru.fromchat.WS_API_HOST
+import ru.fromchat.core.Logger
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.suspendCoroutine
 
 object WebSocketManager {
@@ -41,7 +43,8 @@ object WebSocketManager {
     }
 
     // State
-    @Volatile private var connecting: Boolean = false
+    @Volatile
+    private var connecting: Boolean = false
     @Volatile private var session: DefaultClientWebSocketSession? = null
 
     fun connect() {

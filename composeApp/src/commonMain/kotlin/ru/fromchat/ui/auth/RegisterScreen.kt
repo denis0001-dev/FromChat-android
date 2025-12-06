@@ -27,22 +27,38 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.pr0gramm3r101.utils.crypto.deriveAuthSecret
 import kotlinx.coroutines.launch
-import ru.fromchat.R
+import org.jetbrains.compose.resources.stringResource
+import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.RegisterRequest
 import ru.fromchat.api.apiRequest
+import ru.fromchat.back
+import ru.fromchat.confirm_password
+import ru.fromchat.display_name
+import ru.fromchat.display_name_error
+import ru.fromchat.error_unexpected
+import ru.fromchat.fill_all_fields
+import ru.fromchat.password
+import ru.fromchat.password_length_error
+import ru.fromchat.passwords_dont_match
+import ru.fromchat.register
+import ru.fromchat.register_button
+import ru.fromchat.register_d
 import ru.fromchat.ui.LocalNavController
 import ru.fromchat.ui.RowHeader
-import com.pr0gramm3r101.utils.crypto.deriveAuthSecret
+import ru.fromchat.username
+import ru.fromchat.username_length_error
 
 @Composable
 fun RegisterScreen(
     onRegistered: () -> Unit
 ) {
+    val errorUnexpected = stringResource(Res.string.error_unexpected)
+    
     Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var displayName by remember { mutableStateOf("") }
@@ -69,8 +85,8 @@ fun RegisterScreen(
             ) {
                 RowHeader(
                     icon = Icons.Filled.PersonAdd,
-                    title = stringResource(R.string.register),
-                    subtitle = stringResource(R.string.register_d)
+                    title = stringResource(Res.string.register),
+                    subtitle = stringResource(Res.string.register_d)
                 )
 
                 if (alert != null) {
@@ -80,21 +96,21 @@ fun RegisterScreen(
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text(stringResource(R.string.username)) },
+                    label = { Text(stringResource(Res.string.username)) },
                     singleLine = true
                 )
 
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it },
-                    label = { Text("Display Name") },
+                    label = { Text(stringResource(Res.string.display_name)) },
                     singleLine = true
                 )
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.password)) },
+                    label = { Text(stringResource(Res.string.password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -102,23 +118,24 @@ fun RegisterScreen(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text(stringResource(R.string.confirm_password)) },
+                    label = { Text(stringResource(Res.string.confirm_password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val alert_error_filling = stringResource(R.string.fill_all_fields)
-                    val alert_error_password_little = stringResource(R.string.password_length_error)
-                    val alert_error_name_little = stringResource(R.string.username_length_error)
-                    val alert_error_password_confrim = stringResource(R.string.passwords_dont_match)
+                    val alertErrorFilling = stringResource(Res.string.fill_all_fields)
+                    val alertErrorPasswordLittle = stringResource(Res.string.password_length_error)
+                    val alertErrorNameLittle = stringResource(Res.string.username_length_error)
+                    val alertErrorPasswordConfrim = stringResource(Res.string.passwords_dont_match)
+                    val alertErrorDisplayName = stringResource(Res.string.display_name_error)
 
                     IconButton(
                         onClick = { navController.navigateUp() }
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back)
                         )
                     }
 
@@ -126,23 +143,23 @@ fun RegisterScreen(
                         onClick = {
                             // Checks
                             if (username.isBlank() || displayName.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                                alert = alert_error_filling
+                                alert = alertErrorFilling
                                 return@Button
                             }
                             if (password != confirmPassword) {
-                                alert = alert_error_password_confrim
+                                alert = alertErrorPasswordConfrim
                                 return@Button
                             }
                             if (username.length !in 3..20) {
-                                alert = alert_error_name_little
+                                alert = alertErrorNameLittle
                                 return@Button
                             }
                             if (displayName.isBlank() || displayName.length > 64) {
-                                alert = "Display name must be between 1 and 64 characters"
+                                alert = alertErrorDisplayName
                                 return@Button
                             }
                             if (password.length !in 5..50) {
-                                alert = alert_error_password_little
+                                alert = alertErrorPasswordLittle
                                 return@Button
                             }
 
@@ -151,6 +168,7 @@ fun RegisterScreen(
                                 val derived = deriveAuthSecret(username.trim(), password)
                                 
                                 apiRequest(
+                                    unexpectedError = errorUnexpected,
                                     onError = { message, _ ->
                                         alert = message
                                     },
@@ -168,7 +186,7 @@ fun RegisterScreen(
                             }
                         }
                     ) {
-                        Text(stringResource(R.string.register_button))
+                        Text(stringResource(Res.string.register_button))
                     }
                 }
             }

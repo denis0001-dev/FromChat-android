@@ -11,9 +11,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import ru.fromchat.R
+import org.jetbrains.compose.resources.stringResource
+import ru.fromchat.Res
+import ru.fromchat.chat_last_mesaage
+import ru.fromchat.chats
+import ru.fromchat.public_chat
 import ru.fromchat.ui.LocalNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +31,7 @@ fun ChatsTab() {
             MediumTopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.chats),
+                        text = stringResource(Res.string.chats),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -40,8 +43,8 @@ fun ChatsTab() {
         LazyColumn(contentPadding = innerPadding) {
             item {
                 ListItem(
-                    headlineContent = { Text(stringResource(R.string.public_chat)) },
-                    supportingContent = { Text(stringResource(R.string.chat_last_mesaage)) },
+                    headlineContent = { Text(stringResource(Res.string.public_chat)) },
+                    supportingContent = { Text(stringResource(Res.string.chat_last_mesaage)) },
                     modifier = Modifier.clickable {
                         navController.navigate("chats/publicChat")
                     }

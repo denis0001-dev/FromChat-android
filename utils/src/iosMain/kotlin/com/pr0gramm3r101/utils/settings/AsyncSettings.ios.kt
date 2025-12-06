@@ -3,11 +3,12 @@ package com.pr0gramm3r101.utils.settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.Foundation.NSUserDefaults
+import platform.Foundation.NSBundle
 
 class IosAsyncSettings : AsyncSettings {
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults
     
-    override suspend fun putString(key: String, value: String) = withContext(Dispatchers.Default) {
+    override suspend fun putString(key: String, value: String): Unit = withContext(Dispatchers.Default) {
         defaults.setObject(value, key)
         defaults.synchronize()
     }
@@ -16,7 +17,7 @@ class IosAsyncSettings : AsyncSettings {
         defaults.stringForKey(key) ?: default
     }
     
-    override suspend fun putInt(key: String, value: Int) = withContext(Dispatchers.Default) {
+    override suspend fun putInt(key: String, value: Int): Unit = withContext(Dispatchers.Default) {
         defaults.setInteger(value.toLong(), key)
         defaults.synchronize()
     }
@@ -26,7 +27,7 @@ class IosAsyncSettings : AsyncSettings {
         if (value != null) value.toInt() else default
     }
     
-    override suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.Default) {
+    override suspend fun putLong(key: String, value: Long): Unit = withContext(Dispatchers.Default) {
         defaults.setObject(value, key)
         defaults.synchronize()
     }
@@ -35,7 +36,7 @@ class IosAsyncSettings : AsyncSettings {
         (defaults.objectForKey(key) as? platform.Foundation.NSNumber)?.longValue ?: default
     }
     
-    override suspend fun putFloat(key: String, value: Float) = withContext(Dispatchers.Default) {
+    override suspend fun putFloat(key: String, value: Float): Unit = withContext(Dispatchers.Default) {
         defaults.setFloat(value, key)
         defaults.synchronize()
     }
@@ -45,7 +46,7 @@ class IosAsyncSettings : AsyncSettings {
         if (value != null) value.toFloat() else default
     }
     
-    override suspend fun putBoolean(key: String, value: Boolean) = withContext(Dispatchers.Default) {
+    override suspend fun putBoolean(key: String, value: Boolean): Unit = withContext(Dispatchers.Default) {
         defaults.setBool(value, key)
         defaults.synchronize()
     }
@@ -58,7 +59,7 @@ class IosAsyncSettings : AsyncSettings {
         }
     }
     
-    override suspend fun putStringSet(key: String, value: Set<String>) = withContext(Dispatchers.Default) {
+    override suspend fun putStringSet(key: String, value: Set<String>): Unit = withContext(Dispatchers.Default) {
         defaults.setObject(value.toList(), key)
         defaults.synchronize()
     }
@@ -68,7 +69,7 @@ class IosAsyncSettings : AsyncSettings {
         list.filterIsInstance<String>().toSet()
     }
     
-    override suspend fun putStringList(key: String, value: List<String>) = withContext(Dispatchers.Default) {
+    override suspend fun putStringList(key: String, value: List<String>): Unit = withContext(Dispatchers.Default) {
         defaults.setObject(value, key)
         defaults.synchronize()
     }
@@ -78,7 +79,7 @@ class IosAsyncSettings : AsyncSettings {
         list.filterIsInstance<String>()
     }
     
-    override suspend fun remove(key: String) = withContext(Dispatchers.Default) {
+    override suspend fun remove(key: String): Unit = withContext(Dispatchers.Default) {
         defaults.removeObjectForKey(key)
         defaults.synchronize()
     }
@@ -87,8 +88,9 @@ class IosAsyncSettings : AsyncSettings {
         defaults.objectForKey(key) != null
     }
     
-    override suspend fun clear() = withContext(Dispatchers.Default) {
-        val domain = defaults.persistentDomainForName(defaults.bundleIdentifier() ?: "")
+    override suspend fun clear(): Unit = withContext(Dispatchers.Default) {
+        val bundleId = NSBundle.mainBundle.bundleIdentifier ?: ""
+        val domain = defaults.persistentDomainForName(bundleId)
         domain?.keys?.forEach { key ->
             defaults.removeObjectForKey(key as String)
         }

@@ -22,10 +22,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import ru.fromchat.R
+import org.jetbrains.compose.resources.stringResource
+import ru.fromchat.Res
+import ru.fromchat.chats
+import ru.fromchat.coming_soon
+import ru.fromchat.contacts
+import ru.fromchat.dms
 import ru.fromchat.utils.exclude
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf("chats") }
@@ -36,19 +41,19 @@ fun MainScreen() {
                 NavigationBarItem(
                     selected = selectedTab == "chats",
                     onClick = { selectedTab = "chats" },
-                    label = { Text(stringResource(R.string.chats)) },
+                    label = { Text(stringResource(Res.string.chats)) },
                     icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == "contacts",
                     onClick = { selectedTab = "contacts" },
-                    label = { Text(stringResource(R.string.contacts)) },
+                    label = { Text(stringResource(Res.string.contacts)) },
                     icon = { Icon(Icons.Filled.Contacts, contentDescription = null) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == "dms",
                     onClick = { selectedTab = "dms" },
-                    label = { Text(stringResource(R.string.dms)) },
+                    label = { Text(stringResource(Res.string.dms)) },
                     icon = { Icon(Icons.Filled.Mail, contentDescription = null) }
                 )
             }
@@ -64,10 +69,10 @@ fun MainScreen() {
             when (selectedTab) {
                 "chats" -> ChatsTab()
                 "contacts" -> {
-                    Text(stringResource(R.string.coming_soon))
+                    Text(stringResource(Res.string.coming_soon))
                 }
                 "dms" -> {
-                    Text(stringResource(R.string.coming_soon))
+                    Text(stringResource(Res.string.coming_soon))
                 }
             }
         }

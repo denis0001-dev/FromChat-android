@@ -24,22 +24,32 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.pr0gramm3r101.utils.crypto.deriveAuthSecret
 import kotlinx.coroutines.launch
-import ru.fromchat.R
+import org.jetbrains.compose.resources.stringResource
+import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.LoginRequest
 import ru.fromchat.api.apiRequest
+import ru.fromchat.error_unexpected
+import ru.fromchat.fill_all_fields
+import ru.fromchat.login
+import ru.fromchat.login_d
+import ru.fromchat.password
+import ru.fromchat.register_button
 import ru.fromchat.ui.RowHeader
-import com.pr0gramm3r101.utils.crypto.deriveAuthSecret
+import ru.fromchat.username
+import ru.fromchat.welcome
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
+    val errorUnexpected = stringResource(Res.string.error_unexpected)
+    
     Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
@@ -63,8 +73,8 @@ fun LoginScreen(
             ) {
                 RowHeader(
                     icon = Icons.AutoMirrored.Filled.Login,
-                    title = stringResource(R.string.welcome),
-                    subtitle = stringResource(R.string.login_d)
+                    title = stringResource(Res.string.welcome),
+                    subtitle = stringResource(Res.string.login_d)
                 )
 
                 if (alert != null) {
@@ -74,25 +84,25 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text(stringResource(R.string.username)) },
+                    label = { Text(stringResource(Res.string.username)) },
                     singleLine = true
                 )
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.password)) },
+                    label = { Text(stringResource(Res.string.password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val alert_error_filling = stringResource(R.string.fill_all_fields)
+                    val alertErrorFilling = stringResource(Res.string.fill_all_fields)
 
                     Button(
                         onClick = {
                             if (username.isBlank() || password.isBlank()) {
-                                alert = alert_error_filling
+                                alert = alertErrorFilling
                                 return@Button
                             }
 
@@ -101,6 +111,7 @@ fun LoginScreen(
                                 val derived = deriveAuthSecret(username.trim(), password.trim())
                                 
                                 apiRequest(
+                                    unexpectedError = errorUnexpected,
                                     onError = { message, _ ->
                                         alert = message
                                     },
@@ -111,11 +122,11 @@ fun LoginScreen(
                             }
                         }
                     ) {
-                        Text(stringResource(R.string.login))
+                        Text(stringResource(Res.string.login))
                     }
 
                     Button(onClick = onNavigateToRegister) {
-                        Text(stringResource(R.string.register_button))
+                        Text(stringResource(Res.string.register_button))
                     }
                 }
             }
