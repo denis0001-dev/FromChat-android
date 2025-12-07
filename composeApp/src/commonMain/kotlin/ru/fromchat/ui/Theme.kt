@@ -1,95 +1,117 @@
 package ru.fromchat.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import ru.fromchat.core.Settings
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFDBB9F9),
-    onPrimary = Color(0xFF3E2458),
-    primaryContainer = Color(0xFF563B71),
-    onPrimaryContainer = Color(0xFFF0DBFF),
-    secondary = Color(0xFFD0C1DA),
-    onSecondary = Color(0xFF362C3F),
-    secondaryContainer = Color(0xFF4D4356),
-    onSecondaryContainer = Color(0xFFEDDDF6),
-    tertiary = Color(0xFFF3B7BE),
-    onTertiary = Color(0xFF4B252B),
-    tertiaryContainer = Color(0xFF653A40),
-    onTertiaryContainer = Color(0xFFFFD9DD),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF151218),
-    onBackground = Color(0xFFE8E0E8),
-    surface = Color(0xFF151218),
-    onSurface = Color(0xFFE8E0E8),
-    surfaceVariant = Color(0xFF4A454E),
-    onSurfaceVariant = Color(0xFFCCC4CE),
-    outline = Color(0xFF968E98),
-    outlineVariant = Color(0xFF4A454E),
-    scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFFE8E0E8),
-    inverseOnSurface = Color(0xFF332F35),
-    inversePrimary = Color(0xFF6F528A),
-    surfaceDim = Color(0xFF151218),
-    surfaceBright = Color(0xFF3C383E),
-    surfaceContainerLowest = Color(0xFF100D12),
-    surfaceContainerLow = Color(0xFF1E1A20),
-    surfaceContainer = Color(0xFF221E24),
-    surfaceContainerHigh = Color(0xFF2C292E),
-    surfaceContainerHighest = Color(0xFF373339),
+enum class Theme {
+    AsSystem,
+    Light,
+    Dark
+}
+
+var dynamicThemeEnabled by mutableStateOf(
+    runCatching { Settings.materialYou }.getOrNull() == true
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1F6586),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFC5E7FF),
-    onPrimaryContainer = Color(0xFF004C6A),
-    secondary = Color(0xFF4E616D),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD2E5F4),
-    onSecondaryContainer = Color(0xFF374955),
-    tertiary = Color(0xFF615A7C),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFE7DEFF),
-    onTertiaryContainer = Color(0xFF494263),
-    error = Color(0xFFBA1A1A),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF93000A),
-    background = Color(0xFFF6FAFE),
-    onBackground = Color(0xFF181C1F),
-    surface = Color(0xFFF6FAFE),
-    onSurface = Color(0xFF181C1F),
-    surfaceVariant = Color(0xFFDDE3EA),
-    onSurfaceVariant = Color(0xFF41484D),
-    outline = Color(0xFF71787E),
-    outlineVariant = Color(0xFFC1C7CE),
-    scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFF2C3134),
-    inverseOnSurface = Color(0xFFEDF1F5),
-    inversePrimary = Color(0xFF91CEF4),
-    surfaceDim = Color(0xFFD7DADF),
-    surfaceBright = Color(0xFFF6FAFE),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF0F4F8),
-    surfaceContainer = Color(0xFFEBEEF3),
-    surfaceContainerHigh = Color(0xFFE5E8ED),
-    surfaceContainerHighest = Color(0xFFDFE3E7),
+var theme by mutableStateOf(
+    runCatching { Settings.theme }.getOrNull() ?: Theme.AsSystem
 )
 
 @Composable
+expect fun getColorScheme(darkTheme: Boolean, dynamicColor: Boolean): ColorScheme
+
+@Composable
 fun FromChatTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Disabled for multiplatform compatibility
+    darkTheme: Boolean = when (theme) {
+        Theme.AsSystem -> isSystemInDarkTheme()
+        Theme.Light -> false
+        Theme.Dark -> true
+    },
+    dynamicColor: Boolean = dynamicThemeEnabled,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    var colorScheme = getColorScheme(darkTheme, dynamicColor)
+
+    val primary by animateColorAsState(colorScheme.primary)
+    val onPrimary by animateColorAsState(colorScheme.onPrimary)
+    val primaryContainer by animateColorAsState(colorScheme.primaryContainer)
+    val onPrimaryContainer by animateColorAsState(colorScheme.onPrimaryContainer)
+    val secondary by animateColorAsState(colorScheme.secondary)
+    val onSecondary by animateColorAsState(colorScheme.onSecondary)
+    val secondaryContainer by animateColorAsState(colorScheme.secondaryContainer)
+    val onSecondaryContainer by animateColorAsState(colorScheme.onSecondaryContainer)
+    val tertiary by animateColorAsState(colorScheme.tertiary)
+    val onTertiary by animateColorAsState(colorScheme.onTertiary)
+    val tertiaryContainer by animateColorAsState(colorScheme.tertiaryContainer)
+    val onTertiaryContainer by animateColorAsState(colorScheme.onTertiaryContainer)
+    val error by animateColorAsState(colorScheme.error)
+    val onError by animateColorAsState(colorScheme.onError)
+    val errorContainer by animateColorAsState(colorScheme.errorContainer)
+    val onErrorContainer by animateColorAsState(colorScheme.onErrorContainer)
+    val background by animateColorAsState(colorScheme.background)
+    val onBackground by animateColorAsState(colorScheme.onBackground)
+    val surface by animateColorAsState(colorScheme.surface)
+    val onSurface by animateColorAsState(colorScheme.onSurface)
+    val surfaceVariant by animateColorAsState(colorScheme.surfaceVariant)
+    val onSurfaceVariant by animateColorAsState(colorScheme.onSurfaceVariant)
+    val outline by animateColorAsState(colorScheme.outline)
+    val outlineVariant by animateColorAsState(colorScheme.outlineVariant)
+    val scrim by animateColorAsState(colorScheme.scrim)
+    val inverseSurface by animateColorAsState(colorScheme.inverseSurface)
+    val inverseOnSurface by animateColorAsState(colorScheme.inverseOnSurface)
+    val inversePrimary by animateColorAsState(colorScheme.inversePrimary)
+    val surfaceDim by animateColorAsState(colorScheme.surfaceDim)
+    val surfaceBright by animateColorAsState(colorScheme.surfaceBright)
+    val surfaceContainerLowest by animateColorAsState(colorScheme.surfaceContainerLowest)
+    val surfaceContainerLow by animateColorAsState(colorScheme.surfaceContainerLow)
+    val surfaceContainer by animateColorAsState(colorScheme.surfaceContainer)
+    val surfaceContainerHigh by animateColorAsState(colorScheme.surfaceContainerHigh)
+    val surfaceContainerHighest by animateColorAsState(colorScheme.surfaceContainerHighest)
+
+    colorScheme = colorScheme.copy(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = secondary,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
+        tertiary = tertiary,
+        onTertiary = onTertiary,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        error = error,
+        onError = onError,
+        errorContainer = errorContainer,
+        onErrorContainer = onErrorContainer,
+        background = background,
+        onBackground = onBackground,
+        surface = surface,
+        onSurface = onSurface,
+        surfaceVariant = surfaceVariant,
+        onSurfaceVariant = onSurfaceVariant,
+        outline = outline,
+        outlineVariant = outlineVariant,
+        scrim = scrim,
+        inverseSurface = inverseSurface,
+        inverseOnSurface = inverseOnSurface,
+        inversePrimary = inversePrimary,
+        surfaceDim = surfaceDim,
+        surfaceBright = surfaceBright,
+        surfaceContainerLowest = surfaceContainerLowest,
+        surfaceContainerLow = surfaceContainerLow,
+        surfaceContainer = surfaceContainer,
+        surfaceContainerHigh = surfaceContainerHigh,
+        surfaceContainerHighest = surfaceContainerHighest
+    )
 
     MaterialTheme(
         colorScheme = colorScheme,

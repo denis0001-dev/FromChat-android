@@ -7,6 +7,7 @@
     <string name="settings">Settings</string>
     <string name="home">Home</string>
     <string name="about">About app</string>
+    <string name="app_desc">A 100% free, open source and private messenger.</string>
     
     <!-- Authentication -->
     <string name="welcome">Welcome!</string>
@@ -35,6 +36,26 @@
     <string name="public_chat">General Chat</string>
     <string name="chat_last_mesaage">You: Last message</string>
     <string name="message_placeholder">Type a message...</string>
+    
+    <!-- Server Configuration -->
+    <string name="server_config_title">Server Configuration</string>
+    <string name="server_config_subtitle">Enter server details to connect</string>
+    <string name="server_url_label">Server URL</string>
+    <string name="server_url_hint">fromchat.ru</string>
+    <string name="https_enabled">Use HTTPS</string>
+    <string name="save_continue">Save &amp; Continue</string>
+
+    
+    <!-- Settings -->
+    <string name="change_server">Change Server</string>
+    <string name="change_server_d">Changes the FromChat instance you are connecting to. This will log you out of your account.</string>
+    <string name="logout">Logout</string>
+    <string name="materialYou">Enable Material You theming</string>
+    <string name="materialYou_d">Enable the dynamic theme based on your wallpaper. Works only on Android 12 or higher.</string>
+    <string name="theme">Theme</string>
+    <string name="as_system">As system</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
     
     <!-- Error Messages -->
     <string name="error_unexpected">Unexpected error</string>

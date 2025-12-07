@@ -18,7 +18,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import ru.fromchat.API_HOST
+import ru.fromchat.core.config.Config
 import ru.fromchat.utils.failOnError
 import kotlin.concurrent.Volatile
 
@@ -52,15 +52,13 @@ object ApiClient {
 
     @Volatile
     var token: String? = null
-        private set
 
     @Volatile
     var user: User? = null
-        private set
 
     suspend fun login(request: LoginRequest) =
         http
-            .post("$API_HOST/api/login") {
+            .post("${Config.getApiBaseUrl()}/login") {
                 contentType(ContentType.Application.Json)
                 setBody(request.also { ru.fromchat.core.Logger.d("ApiClient", "Login request: $it") })
             }
@@ -73,7 +71,7 @@ object ApiClient {
 
     suspend fun register(request: RegisterRequest) =
         http
-            .post("$API_HOST/api/register") {
+            .post("${Config.getApiBaseUrl()}/register") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -81,7 +79,7 @@ object ApiClient {
 
     suspend fun getMessages() =
         http
-            .get("$API_HOST/api/get_messages") {
+            .get("${Config.getApiBaseUrl()}/get_messages") {
                 contentType(ContentType.Application.Json)
             }
             .failOnError()
@@ -89,7 +87,7 @@ object ApiClient {
 
     suspend fun send(message: String) =
         http
-            .post("$API_HOST/api/send_message") {
+            .post("${Config.getApiBaseUrl()}/send_message") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token!!)
                 setBody(SendMessageRequest(message))
@@ -99,7 +97,7 @@ object ApiClient {
 
     suspend fun editMessage(messageId: Int, content: String) =
         http
-            .put("$API_HOST/api/edit_message/$messageId") {
+            .put("${Config.getApiBaseUrl()}/edit_message/$messageId") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token!!)
                 setBody(EditMessageRequest(content))
@@ -109,9 +107,20 @@ object ApiClient {
 
     suspend fun deleteMessage(messageId: Int) =
         http
-            .delete("$API_HOST/api/delete_message/$messageId") {
+            .delete("${Config.getApiBaseUrl()}/delete_message/$messageId") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token!!)
             }
             .failOnError()
+
+    suspend fun logout(authToken: String) {
+        // Don't throw on logout errors, just try to logout
+        try {
+            http.get("${Config.getApiBaseUrl()}/logout") {
+                bearerAuth(authToken)
+            }
+        } catch (e: Exception) {
+            // Ignore logout errors
+        }
+    }
 }

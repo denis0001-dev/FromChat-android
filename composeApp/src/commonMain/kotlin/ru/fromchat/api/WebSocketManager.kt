@@ -19,7 +19,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import ru.fromchat.WS_API_HOST
+import ru.fromchat.core.config.Config
 import ru.fromchat.core.Logger
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.suspendCoroutine
@@ -55,10 +55,12 @@ object WebSocketManager {
         scope.launch {
             while (isActive) {
                 try {
+                    val wsUrl = Config.getWebSocketUrl()
+                    Logger.d("WebSocketManager", "Connecting to: $wsUrl")
                     ApiClient.http.webSocket(
                         method = HttpMethod.Get,
                         request = {
-                            url("$WS_API_HOST/api/chat/ws")
+                            url(wsUrl)
                         }
                     ) {
                         session = this
