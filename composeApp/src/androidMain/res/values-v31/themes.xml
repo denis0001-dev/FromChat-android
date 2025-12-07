@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FromChat" parent="Theme.Material3.DayNight.NoActionBar" />
-    
     <style name="Theme.FromChat.SplashScreen" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">?attr/colorSurface</item>
+        <item name="android:windowSplashScreenBackground">?attr/colorSurface</item>
         <item name="postSplashScreenTheme">@style/Theme.FromChat</item>
     </style>
 </resources>
+

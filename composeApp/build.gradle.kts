@@ -35,6 +35,7 @@ kotlin {
             implementation(libs.androidx.adaptive.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.slf4j.android)
+            implementation(libs.material)
         }
 
         commonMain.dependencies {
