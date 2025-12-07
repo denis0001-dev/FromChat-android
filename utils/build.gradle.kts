@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.constraintlayout)
             implementation(compose.materialIconsExtended)
             implementation(libs.jetbrains.kotlinx.coroutines.core)
+            implementation(libs.navigation.compose)
         }
 
         androidMain.dependencies {

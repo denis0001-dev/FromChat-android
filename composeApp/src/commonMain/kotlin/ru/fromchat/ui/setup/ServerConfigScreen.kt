@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import com.pr0gramm3r101.utils.navigateAndWipeBackStack
 import com.pr0gramm3r101.utils.storage.ServerConfigData
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -54,7 +55,6 @@ import ru.fromchat.server_config_title
 import ru.fromchat.server_url_hint
 import ru.fromchat.server_url_label
 import ru.fromchat.ui.LocalNavController
-import ru.fromchat.ui.wipeBackStack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,11 +166,8 @@ fun ServerConfigScreen() {
                         // Shutdown WebSocket (will reconnect on login)
                         WebSocketManager.shutdown()
                         
-                        // Clear entire back stack except current screen
-                        navController.wipeBackStack()
-                        
-                        // Navigate to login
-                        navController.navigate("login")
+                        // Navigate to login and wipe entire back stack
+                        navController.navigateAndWipeBackStack("login")
                     }
                 },
                 enabled = !isLoading && serverUrl.isNotBlank(),
