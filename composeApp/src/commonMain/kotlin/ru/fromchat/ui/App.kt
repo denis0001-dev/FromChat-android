@@ -26,6 +26,7 @@ import ru.fromchat.api.WebSocketManager
 import ru.fromchat.core.config.Config
 import ru.fromchat.ui.auth.LoginScreen
 import ru.fromchat.ui.auth.RegisterScreen
+import ru.fromchat.ui.chat.PublicChatScreen
 import ru.fromchat.ui.main.MainScreen
 import ru.fromchat.ui.setup.ServerConfigScreen
 
@@ -136,7 +137,9 @@ fun App() {
                             )
                         }
 
-                        composable("chats/publicChat") { /* PublicChatScreen() */ }
+                        composable("chats/publicChat") {
+                            PublicChatScreen()
+                        }
                         
                         composable("about") {
                             AboutScreen()

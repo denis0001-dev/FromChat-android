@@ -1,0 +1,7 @@
+<resources>
+    <!-- Typing Indicators -->
+    <string name="typing_single">%1$s печатает…</string>
+    <string name="typing_two">%1$s и %2$s печатают…</string>
+    <string name="typing_many">%1$s, %2$s и еще %3$d печатают…</string>
+</resources>
+

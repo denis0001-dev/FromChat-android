@@ -19,10 +19,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import ru.fromchat.core.config.Config
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import ru.fromchat.core.Logger
+import ru.fromchat.core.config.Config
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.suspendCoroutine
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 object WebSocketManager {
     // Config
@@ -46,6 +50,24 @@ object WebSocketManager {
     @Volatile
     private var connecting: Boolean = false
     @Volatile private var session: DefaultClientWebSocketSession? = null
+
+    /**
+     * Check if WebSocket is connected
+     */
+    fun isConnected(): Boolean = session != null
+
+    /**
+     * Wait for WebSocket connection with timeout
+     */
+    @OptIn(ExperimentalTime::class)
+    suspend fun waitForConnection(timeoutMs: Long = 10000): Boolean {
+        if (session != null) return true
+        val startTime = Clock.System.now().toEpochMilliseconds()
+        while (session == null && (Clock.System.now().toEpochMilliseconds() - startTime) < timeoutMs) {
+            delay(100)
+        }
+        return session != null
+    }
 
     fun connect() {
         Logger.d("WebSocketManager", "Connecting to WebSocket")
@@ -71,7 +93,21 @@ object WebSocketManager {
                             val text = (frame as? Frame.Text)?.readText() ?: continue
                             Logger.d("WebSocketManager", "Received payload: $text")
                             try {
-                                val msg = json.decodeFromString<WebSocketMessage>(text)
+                                // Check if this is an "updates" message - it has a different structure
+                                val jsonTree = json.parseToJsonElement(text)
+                                val messageType = jsonTree.jsonObject["type"]?.jsonPrimitive?.content
+                                
+                                val msg = if (messageType == "updates") {
+                                    // Wrap in WebSocketMessage with the entire JSON tree as data
+                                    WebSocketMessage(
+                                        type = "updates",
+                                        data = jsonTree
+                                    )
+                                } else {
+                                    // Parse as regular WebSocketMessage
+                                    json.decodeFromString<WebSocketMessage>(text)
+                                }
+                                
                                 globalHandlers.forEach { it(msg) }
                                 _messages.emit(msg)
                             } catch (e: Throwable) {
@@ -95,10 +131,18 @@ object WebSocketManager {
     }
 
     suspend fun send(message: WebSocketMessage) {
-        val session = session
-        if (session != null) {
+        // Wait for connection if not connected yet
+        if (session == null) {
+            if (!waitForConnection(5000)) {
+                Logger.w("WebSocketManager", "Cannot send message: no active session after waiting")
+                throw IllegalStateException("No active WebSocket session")
+            }
+        }
+        
+        val currentSession = session
+        if (currentSession != null) {
             try {
-                session.send(Frame.Text(json.encodeToString(message)))
+                currentSession.send(Frame.Text(json.encodeToString(message)))
             } catch (e: Exception) {
                 Logger.e("WebSocketManager", "Failed to send message: ${e.message}", e)
                 throw e

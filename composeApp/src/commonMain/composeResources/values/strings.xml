@@ -62,4 +62,9 @@
     <string name="error_invalid_credentials">Invalid username or password</string>
     <string name="error_connection">Connection error</string>
     <string name="error_unknown">An unknown error occurred</string>
+    
+    <!-- Typing Indicators -->
+    <string name="typing_single">%1$s is typing…</string>
+    <string name="typing_two">%1$s and %2$s are typing…</string>
+    <string name="typing_many">%1$s, %2$s and %3$d more are typing…</string>
 </resources>

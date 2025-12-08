@@ -9,15 +9,15 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
-import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.core.config.Config
 import ru.fromchat.utils.failOnError
 import kotlin.concurrent.Volatile
@@ -77,10 +77,13 @@ object ApiClient {
             }
             .failOnError()
 
-    suspend fun getMessages() =
+    suspend fun getMessages(limit: Int = 50, beforeId: Int? = null) =
         http
             .get("${Config.getApiBaseUrl()}/get_messages") {
                 contentType(ContentType.Application.Json)
+                bearerAuth(token ?: throw IllegalStateException("Not authenticated"))
+                parameter("limit", limit)
+                beforeId?.let { parameter("before_id", it) }
             }
             .failOnError()
             .body<MessagesResponse>()
@@ -95,23 +98,6 @@ object ApiClient {
             .failOnError()
             .body<SendMessageResponse>()
 
-    suspend fun editMessage(messageId: Int, content: String) =
-        http
-            .put("${Config.getApiBaseUrl()}/edit_message/$messageId") {
-                contentType(ContentType.Application.Json)
-                bearerAuth(token!!)
-                setBody(EditMessageRequest(content))
-            }
-            .failOnError()
-            .body<SendMessageResponse>()
-
-    suspend fun deleteMessage(messageId: Int) =
-        http
-            .delete("${Config.getApiBaseUrl()}/delete_message/$messageId") {
-                contentType(ContentType.Application.Json)
-                bearerAuth(token!!)
-            }
-            .failOnError()
 
     suspend fun logout(authToken: String) {
         // Don't throw on logout errors, just try to logout
@@ -121,6 +107,99 @@ object ApiClient {
             }
         } catch (e: Exception) {
             // Ignore logout errors
+        }
+    }
+
+    // WebSocket send helpers
+    suspend fun sendMessage(content: String, replyToId: Int? = null) {
+        val token = token ?: throw IllegalStateException("Not authenticated")
+        WebSocketManager.send(
+            WebSocketMessage(
+                type = "sendMessage",
+                credentials = WebSocketCredentials(
+                    scheme = "Bearer",
+                    credentials = token
+                ),
+                data = json.encodeToJsonElement(
+                    WebSocketSendMessageRequest(
+                        content = content,
+                        reply_to_id = replyToId
+                    )
+                )
+            )
+        )
+    }
+
+    suspend fun editMessage(messageId: Int, content: String) {
+        val token = token ?: throw IllegalStateException("Not authenticated")
+        WebSocketManager.send(
+            WebSocketMessage(
+                type = "editMessage",
+                credentials = WebSocketCredentials(
+                    scheme = "Bearer",
+                    credentials = token
+                ),
+                data = json.encodeToJsonElement(
+                    WebSocketEditMessageRequest(
+                        message_id = messageId,
+                        content = content
+                    )
+                )
+            )
+        )
+    }
+
+    suspend fun deleteMessage(messageId: Int) {
+        val token = token ?: throw IllegalStateException("Not authenticated")
+        WebSocketManager.send(
+            WebSocketMessage(
+                type = "deleteMessage",
+                credentials = WebSocketCredentials(
+                    scheme = "Bearer",
+                    credentials = token
+                ),
+                data = json.encodeToJsonElement(
+                    WebSocketDeleteMessageRequest(
+                        message_id = messageId
+                    )
+                )
+            )
+        )
+    }
+
+    suspend fun sendTyping() {
+        val token = token ?: throw IllegalStateException("Not authenticated")
+        try {
+            WebSocketManager.send(
+                WebSocketMessage(
+                    type = "typing",
+                    credentials = WebSocketCredentials(
+                        scheme = "Bearer",
+                        credentials = token
+                    )
+                )
+            )
+        } catch (e: Exception) {
+            // Silently ignore if WebSocket is not connected yet
+            // Typing indicators are not critical
+        }
+    }
+
+    suspend fun sendStopTyping() {
+        val token = token ?: throw IllegalStateException("Not authenticated")
+        try {
+            WebSocketManager.send(
+                WebSocketMessage(
+                    type = "stopTyping",
+                    credentials = WebSocketCredentials(
+                        scheme = "Bearer",
+                        credentials = token
+                    )
+                )
+            )
+        } catch (e: Exception) {
+            // Silently ignore if WebSocket is not connected yet
+            // Typing indicators are not critical
         }
     }
 }

@@ -99,3 +99,57 @@ data class WebSocketMessage(
     val data: JsonElement? = null,
     val error: WebSocketError? = null
 )
+
+// WebSocket message data types
+@Serializable
+data class NewMessageData(
+    val message: Message
+)
+
+@Serializable
+data class MessageEditedData(
+    val message: Message
+)
+
+@Serializable
+data class MessageDeletedData(
+    val message_id: Int
+)
+
+@Serializable
+data class TypingData(
+    val userId: Int,
+    val username: String
+)
+
+// Batched updates message
+@Serializable
+data class UpdateItem(
+    val type: String,
+    val data: JsonElement? = null
+)
+
+@Serializable
+data class UpdatesMessage(
+    val type: String,
+    val seq: Int,
+    val updates: List<UpdateItem>
+)
+
+// WebSocket request types
+@Serializable
+data class WebSocketSendMessageRequest(
+    val content: String,
+    val reply_to_id: Int? = null
+)
+
+@Serializable
+data class WebSocketEditMessageRequest(
+    val message_id: Int,
+    val content: String
+)
+
+@Serializable
+data class WebSocketDeleteMessageRequest(
+    val message_id: Int
+)
