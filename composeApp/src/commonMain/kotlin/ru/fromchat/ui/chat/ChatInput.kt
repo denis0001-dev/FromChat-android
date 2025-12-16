@@ -1,5 +1,9 @@
 package ru.fromchat.ui.chat
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -8,19 +12,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -85,10 +88,7 @@ fun ChatInput(
     }
 
     Column(
-        Modifier
-            .windowInsetsPadding(
-                WindowInsets.ime.add(WindowInsets.navigationBars)
-            )
+        Modifier.windowInsetsPadding(WindowInsets.navigationBars)
     ) {
         // Reply preview
         replyTo?.let { reply ->
@@ -163,15 +163,21 @@ fun ChatInput(
                         unfocusedBorderColor = Color.Transparent
                     ),
                     trailingIcon = {
-                        if (text.isNotBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                IconButton(
+                        val offset = with(LocalDensity.current) { 20.dp.toPx().toInt() }
+
+                        AnimatedVisibility(
+                            visible = text.isNotBlank(),
+                            enter = slideInHorizontally(
+                                initialOffsetX = { it + offset },
+                                animationSpec = tween(durationMillis = 300)
+                            ),
+                            exit = slideOutHorizontally(
+                                targetOffsetX = { it + offset },
+                                animationSpec = tween(durationMillis = 200)
+                            )
+                        ) {
+                            Box(Modifier.padding(end = 5.dp)) {
+                                FilledIconButton(
                                     onClick = {
                                         onSend(text.trim())
                                         onTextChange("")
