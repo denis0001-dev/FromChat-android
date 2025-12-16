@@ -41,9 +41,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeProgressive
@@ -331,16 +334,25 @@ fun ChatScreen(
                     modifier = Modifier.fillMaxSize(), // Fill the entire space of the Box
                     verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom)
                 ) {
-                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
+                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
+
                     items(
                         items = panelState.messages,
                         key = { it.id }
                     ) { message ->
                         val isAuthor = message.user_id == currentUserId
-                        var tapPosition by remember { mutableStateOf(IntOffset(0, 0)) }
+                        var messagePosition by remember { mutableStateOf(IntOffset(0, 0)) }
+                        var tapOffset by remember { mutableStateOf(Offset(0f, 0f)) }
 
                         Box(
-                            modifier = Modifier.hazeSource(hazeState)
+                            modifier = Modifier
+                                .hazeSource(hazeState)
+                                .onGloballyPositioned { coordinates ->
+                                    messagePosition = IntOffset(
+                                        coordinates.positionInRoot().x.toInt(),
+                                        coordinates.positionInRoot().y.toInt()
+                                    )
+                                }
                         ) {
                             MessageItem(
                                 message = message,
@@ -349,16 +361,20 @@ fun ChatScreen(
                                     contextMenuState = ContextMenuState(
                                         isOpen = true,
                                         message = message,
-                                        position = tapPosition
+                                        position = IntOffset(
+                                            messagePosition.x + tapOffset.x.toInt(),
+                                            messagePosition.y + tapOffset.y.toInt()
+                                        )
                                     )
                                 },
-                                onTapPosition = { position ->
-                                    tapPosition = position
+                                onTapPosition = { offset ->
+                                    tapOffset = offset
                                 }
                             )
                         }
                     }
-                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
+
+                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
                 }
             }
 
@@ -381,7 +397,6 @@ fun ChatScreen(
                         panel.handleDeleteMessage(message.id)
                     }
                 },
-                hazeState = hazeState
             )
         }
     }
