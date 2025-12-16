@@ -329,8 +329,7 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(), // Fill the entire space of the Box
-                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom),
-                    reverseLayout = true // Display messages from bottom to top
+                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom)
                 ) {
                     item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
                     items(

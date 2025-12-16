@@ -81,6 +81,13 @@ fun MessageItem(
             verticalAlignment = Alignment.Bottom
         ) {
             if (!isAuthor) {
+                // Avatar at bottom
+                Avatar(
+                    profilePictureUrl = message.profile_picture,
+                    displayName = message.username,
+                    size = 32.dp
+                )
+
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
@@ -195,18 +202,6 @@ fun MessageItem(
                         }
                     }
                 }
-            }
-
-            if (!isAuthor) {
-                Spacer(modifier = Modifier.width(8.dp))
-                // Avatar at bottom
-                Avatar(
-                    profilePictureUrl = message.profile_picture,
-                    displayName = message.username,
-                    size = 32.dp
-                )
-            } else {
-                Spacer(modifier = Modifier.width(8.dp))
             }
         }
     }
