@@ -2,8 +2,8 @@ package com.pr0gramm3r101.utils.settings
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSBundle
+import platform.Foundation.NSUserDefaults
 
 class IosAsyncSettings : AsyncSettings {
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults
@@ -23,8 +23,7 @@ class IosAsyncSettings : AsyncSettings {
     }
     
     override suspend fun getInt(key: String, default: Int): Int = withContext(Dispatchers.Default) {
-        val value = defaults.integerForKey(key)
-        if (value != null) value.toInt() else default
+        defaults.integerForKey(key).toInt()
     }
     
     override suspend fun putLong(key: String, value: Long): Unit = withContext(Dispatchers.Default) {
@@ -42,8 +41,7 @@ class IosAsyncSettings : AsyncSettings {
     }
     
     override suspend fun getFloat(key: String, default: Float): Float = withContext(Dispatchers.Default) {
-        val value = defaults.floatForKey(key)
-        if (value != null) value.toFloat() else default
+        defaults.floatForKey(key)
     }
     
     override suspend fun putBoolean(key: String, value: Boolean): Unit = withContext(Dispatchers.Default) {

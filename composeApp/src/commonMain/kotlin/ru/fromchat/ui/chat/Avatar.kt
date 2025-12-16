@@ -1,7 +1,5 @@
 package ru.fromchat.ui.chat
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -32,11 +30,6 @@ fun Avatar(
     modifier: Modifier = Modifier
 ) {
     var imageLoadFailed by remember { mutableStateOf(false) }
-    val alpha by animateFloatAsState(
-        targetValue = if (imageLoadFailed) 0f else 1f,
-        animationSpec = tween(300),
-        label = "avatar_fade"
-    )
     
     val gradient = remember(displayName) { generateGradientFromName(displayName) }
     val initials = remember(displayName) { getInitials(displayName) }

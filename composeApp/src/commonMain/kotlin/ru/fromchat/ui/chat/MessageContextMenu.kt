@@ -48,6 +48,7 @@ data class ContextMenuState(
     val position: IntOffset = IntOffset(0, 0)
 )
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 fun MessageContextMenu(
     state: ContextMenuState,

@@ -86,7 +86,6 @@ import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
-import kotlin.collections.iterator
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.reflect.KClass
@@ -291,12 +290,13 @@ fun Activity.resolveAttr(@AttrRes id: Int): Int? {
     }
 }
 
-@Suppress("UNUSED_PARAMETER", "unused", "MemberVisibilityCanBePrivate")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 class QuickAlertDialogBuilder(context: Context): MaterialAlertDialogBuilder(context) {
     fun title(title: CharSequence): QuickAlertDialogBuilder {
         setTitle(title)
         return this
     }
+
     fun title(@StringRes titleRes: Int): QuickAlertDialogBuilder {
         setTitle(titleRes)
         return this

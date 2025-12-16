@@ -2,7 +2,6 @@ package ru.fromchat.ui.chat
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.MaterialTheme
 import kotlin.math.abs
 
 /**

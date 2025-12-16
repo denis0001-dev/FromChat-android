@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.pr0gramm3r101.utils.settings.DataStoreSingleton
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 

@@ -1,6 +1,5 @@
 package com.pr0gramm3r101.utils.settings
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -13,11 +12,11 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import com.pr0gramm3r101.utils.settings.DataStoreSingleton
 
-class AndroidSettings(private val context: Context): Settings {
+class AndroidSettings(): Settings {
     private val dataStore: DataStore<Preferences>
         get() = DataStoreSingleton.dataStore
+
     override fun putString(key: String, value: String) {
         runBlocking {
             dataStore.edit { preferences ->

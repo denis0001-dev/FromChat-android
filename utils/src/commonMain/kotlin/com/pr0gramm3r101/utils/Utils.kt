@@ -26,6 +26,7 @@ import tech.annexflow.constraintlayout.compose.ConstraintLayoutBaseScope
 import tech.annexflow.constraintlayout.compose.HorizontalAnchorable
 import tech.annexflow.constraintlayout.compose.VerticalAnchorable
 
+@Suppress("ComposableNaming")
 @Composable
 fun Typography(fontRes: FontResource) = Typography().let {
     val font = FontFamily(Font(fontRes))

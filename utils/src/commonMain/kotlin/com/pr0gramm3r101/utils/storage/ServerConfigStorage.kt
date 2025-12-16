@@ -19,7 +19,7 @@ object ServerConfigStorage {
     
     suspend fun getServerUrl(): String? {
         val url = storage.getString(SERVER_URL_KEY)
-        return if (url.isEmpty()) null else url
+        return url.ifEmpty { null }
     }
     
     suspend fun setServerUrl(url: String) {

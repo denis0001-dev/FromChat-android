@@ -56,7 +56,7 @@ inline fun HttpClientConfig<*>.defaultRequest(
 
 /**
  * Installs [Logging] in a Ktor client config.
- * @param settings Lambda to configure the [Logging.Config].
+ * @param settings Lambda to configure the [LoggingConfig].
  */
 inline fun HttpClientConfig<*>.logging(
     crossinline settings: LoggingConfig.() -> Unit

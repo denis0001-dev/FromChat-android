@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -31,14 +30,12 @@ import ru.fromchat.coming_soon
 import ru.fromchat.contacts
 import ru.fromchat.dms
 import ru.fromchat.settings
-import ru.fromchat.ui.LocalNavController
 import ru.fromchat.utils.exclude
 
 @Suppress("AssignedValueIsNeverRead")
 @Composable
 fun MainScreen(onLogout: () -> Unit = {}) {
     var selectedTab by rememberSaveable { mutableStateOf("chats") }
-    val navController = LocalNavController.current
 
     Scaffold(
         bottomBar = {
