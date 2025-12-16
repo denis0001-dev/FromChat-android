@@ -1,3 +1,4 @@
+
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -9,13 +10,13 @@ plugins {
     kotlin("plugin.serialization") version "1.9.22"
 }
 
-kotlin {
+    kotlin {
     androidTarget()
 
     compilerOptions {
         freeCompilerArgs.addAll("-Xexpect-actual-classes")
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -28,12 +29,19 @@ kotlin {
     }
     
     sourceSets {
+        all {
+            languageSettings {
+                optIn("kotlin.RequiresOptIn")
+            }
+        }
+        
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.androidx.adaptive.android)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.client.core)
             implementation(libs.slf4j.android)
             implementation(libs.material)
         }
@@ -48,13 +56,15 @@ kotlin {
             implementation(libs.constraintlayout)
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.haze)
+            implementation(libs.haze.materials)
 
             // Serialization
             implementation(libs.kotlinx.serialization.json)
 
             implementation(libs.kotlinx.io.core)
             
-            // Ktor
+            // Ktor - force version 2.3.12 to avoid conflicts with Coil 3's Ktor 3
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.serialization.kotlinx.json)
@@ -63,6 +73,10 @@ kotlin {
             
             // Datetime
             implementation(libs.kotlinx.datetime)
+            
+            // Coil for image loading (multiplatform)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
             
             implementation(project(":utils"))
         }

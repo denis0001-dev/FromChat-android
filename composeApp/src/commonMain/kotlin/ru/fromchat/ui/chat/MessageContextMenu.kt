@@ -28,11 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 import ru.fromchat.api.Message
 
 data class ContextMenuState(
@@ -41,6 +46,7 @@ data class ContextMenuState(
     val position: IntOffset = IntOffset(0, 0)
 )
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun MessageContextMenu(
     state: ContextMenuState,
@@ -49,12 +55,13 @@ fun MessageContextMenu(
     onReply: (Message) -> Unit,
     onEdit: (Message) -> Unit,
     onDelete: (Message) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState
 ) {
     AnimatedVisibility(
         visible = state.isOpen,
-        enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f, animationSpec = tween(200)),
-        exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.9f, animationSpec = tween(150))
+        enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.8f, animationSpec = tween(250)),
+        exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
     ) {
         if (state.isOpen && state.message != null) {
             Popup(
@@ -69,9 +76,13 @@ fun MessageContextMenu(
                 Surface(
                     modifier = modifier
                         .width(160.dp)
-                        .shadow(8.dp, RoundedCornerShape(8.dp)),
+                        .shadow(8.dp, RoundedCornerShape(8.dp))
+                        .hazeEffect(
+                            state = hazeState,
+                            style = HazeMaterials.thick()
+                        ),
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    color = Color.Transparent
                 ) {
                     Column {
                         // Reply button (always shown)
@@ -160,4 +171,3 @@ private fun ContextMenuItem(
         }
     }
 }
-

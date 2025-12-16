@@ -1,12 +1,14 @@
 [versions]
 agp = "8.13.1"
-androidx-activityCompose = "1.12.0"
+androidx-activityCompose = "1.12.1"
 androidx-appcompat = "1.7.1"
 androidx-core-ktx = "1.17.0"
 androidx-lifecycle = "2.9.6"
+coilCompose = "3.3.0"
 compose-multiplatform = "1.9.3"
 constraintlayout = "0.6.1-shaded"
 coreSplashscreen = "1.2.0"
+haze = "1.7.1"
 kotlin = "2.2.21"
 adaptiveAndroid = "1.2.0"
 kotlinStdlib = "2.2.21"
@@ -17,10 +19,10 @@ kotlinxCoroutinesCore = "1.10.2"
 kotlinxIoCore = "0.8.2"
 kotlinxSerializationJson = "1.9.0"
 material = "1.13.0"
-activityKtx = "1.12.0"
+activityKtx = "1.12.1"
 navigationCompose = "2.9.1"
 datastore = "1.2.0"
-ktor = "2.3.12"
+ktor = "3.3.3"
 slf4j = "1.7.36"
 kotlinxDatetime = "0.7.1"
 
@@ -31,7 +33,11 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
 constraintlayout = { module = "tech.annexflow.compose:constraintlayout-compose-multiplatform", version.ref = "constraintlayout" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 jetbrains-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 jetbrains-kotlinx-io-bytestring = { module = "org.jetbrains.kotlinx:kotlinx-io-bytestring", version.ref = "kotlinxIoBytestring" }
 androidx-adaptive-android = { group = "androidx.compose.material3.adaptive", name = "adaptive-android", version.ref = "adaptiveAndroid" }

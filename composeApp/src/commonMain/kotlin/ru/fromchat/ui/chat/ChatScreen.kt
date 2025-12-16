@@ -1,27 +1,32 @@
 package ru.fromchat.ui.chat
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,20 +38,31 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.decodeFromJsonElement
+import org.jetbrains.compose.resources.stringResource
+import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.TypingData
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.WebSocketMessage
+import ru.fromchat.back
 import ru.fromchat.core.Logger
+import ru.fromchat.ui.LocalNavController
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ChatScreen(
     panel: ChatPanel,
@@ -72,9 +88,11 @@ fun ChatScreen(
         Logger.d("ChatScreen", "Messages count changed: ${panelState.messages.size}")
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val navController = LocalNavController.current
+    val hazeState = rememberHazeState(blurEnabled = true)
 
     // UI state
     var inputText by rememberSaveable { mutableStateOf("") }
@@ -186,19 +204,40 @@ fun ChatScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            MediumTopAppBar(
+            TopAppBar(
                 title = {
-                    Column {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
                             text = panelState.title,
                             style = MaterialTheme.typography.titleLarge
                         )
-                        if (typingUsers.isNotEmpty()) {
-                            TypingIndicator(
-                                typingUsers = typingUsers.values.toList(),
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
+                        AnimatedContent(
+                            targetState = typingUsers.isNotEmpty(),
+                            transitionSpec = {
+                                fadeIn() togetherWith fadeOut()
+                            },
+                            label = "typing_status"
+                        ) { hasTyping ->
+                            if (hasTyping) {
+                                TypingIndicator(
+                                    typingUsers = typingUsers.values.toList(),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            } else {
+                                // Empty space to maintain height
+                                Box(modifier = Modifier.height(0.dp))
+                            }
                         }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.back)
+                        )
                     }
                 },
                 actions = {
@@ -211,14 +250,61 @@ fun ChatScreen(
                         }
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                modifier = Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeMaterials.thin()
+                ),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
+        },
+        bottomBar = {
+            Column( // New Column to hold ChatInput below the LazyColumn
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .hazeEffect(
+                        state = hazeState,
+                        style = HazeMaterials.thin()
+                    ) {
+                        progressive = HazeProgressive.verticalGradient(
+                            startIntensity = 0f,
+                            endIntensity = 1f
+                        )
+                    }
+            ) {
+                ChatInput(
+                    text = inputText,
+                    onTextChange = { inputText = it },
+                    onSend = { text ->
+                        if (editingMessage != null) {
+                            scope.launch {
+                                panel.handleEditMessage(editingMessage!!.id, text)
+                                editingMessage = null
+                            }
+                        } else {
+                            scope.launch {
+                                panel.sendMessageWithImmediateDisplay(text, replyTo?.id)
+                                replyTo = null
+                            }
+                        }
+                        inputText = ""
+                    },
+                    typingHandler = panel.getTypingHandler(),
+                    replyTo = replyTo,
+                    editingMessage = editingMessage,
+                    onClearReply = { replyTo = null },
+                    onClearEdit = { editingMessage = null },
+                    hazeState = hazeState
+                )
+            }
         }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .pointerInput(Unit) {
                     detectTapGestures {
                         // Close context menu on outside tap
@@ -236,23 +322,23 @@ fun ChatScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                Column(
-                    modifier = Modifier.fillMaxSize()
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(), // Fill the entire space of the Box
+                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom),
+                    reverseLayout = true // Display messages from bottom to top
                 ) {
-                    // Message list
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        reverseLayout = false
-                    ) {
-                        items(
-                            items = panelState.messages,
-                            key = { it.id }
-                        ) { message ->
-                            val isAuthor = message.user_id == currentUserId
-                            var tapPosition by remember { mutableStateOf(IntOffset(0, 0)) }
-                            
+                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
+                    items(
+                        items = panelState.messages,
+                        key = { it.id }
+                    ) { message ->
+                        val isAuthor = message.user_id == currentUserId
+                        var tapPosition by remember { mutableStateOf(IntOffset(0, 0)) }
+
+                        Box(
+                            modifier = Modifier.hazeSource(hazeState)
+                        ) {
                             MessageItem(
                                 message = message,
                                 isAuthor = isAuthor,
@@ -269,32 +355,7 @@ fun ChatScreen(
                             )
                         }
                     }
-
-                    // Chat input
-                    ChatInput(
-                        text = inputText,
-                        onTextChange = { inputText = it },
-                        onSend = { text ->
-                            if (editingMessage != null) {
-                                scope.launch {
-                                    panel.handleEditMessage(editingMessage!!.id, text)
-                                    editingMessage = null
-                                }
-                            } else {
-                                scope.launch {
-                                    panel.sendMessageWithImmediateDisplay(text, replyTo?.id)
-                                    replyTo = null
-                                }
-                            }
-                            inputText = ""
-                        },
-                        typingHandler = panel.getTypingHandler(),
-                        replyTo = replyTo,
-                        editingMessage = editingMessage,
-                        onClearReply = { replyTo = null },
-                        onClearEdit = { editingMessage = null },
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.ime)
-                    )
+                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
                 }
             }
 
@@ -316,9 +377,9 @@ fun ChatScreen(
                     scope.launch {
                         panel.handleDeleteMessage(message.id)
                     }
-                }
+                },
+                hazeState = hazeState
             )
         }
     }
 }
-

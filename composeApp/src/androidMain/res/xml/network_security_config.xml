@@ -11,4 +11,10 @@
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
+    <domain-config>
+        <domain includeSubdomains="true">fromchat.ru</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>

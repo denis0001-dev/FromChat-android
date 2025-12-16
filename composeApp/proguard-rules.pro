@@ -19,3 +19,14 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Ktor classes
+-keep class io.ktor.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn io.ktor.**
+
+# Keep HttpTimeout plugin specifically
+-keep class io.ktor.client.plugins.HttpTimeout { *; }
+-keep class io.ktor.client.plugins.HttpTimeout$* { *; }
+-keep class io.ktor.client.plugins.HttpTimeout$Plugin { *; }
+-keep class io.ktor.client.plugins.HttpTimeout$Config { *; }

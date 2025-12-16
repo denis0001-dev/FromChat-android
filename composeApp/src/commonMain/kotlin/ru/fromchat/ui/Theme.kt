@@ -118,3 +118,12 @@ fun FromChatTheme(
         content = content
     )
 }
+
+@Composable
+fun isAppInDarkTheme(): Boolean {
+    return when (theme) {
+        Theme.AsSystem -> isSystemInDarkTheme()
+        Theme.Light -> false
+        Theme.Dark -> true
+    }
+}

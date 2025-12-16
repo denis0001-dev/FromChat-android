@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +16,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,8 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ import ru.fromchat.api.Message
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun MessageItem(
     message: Message,
@@ -74,24 +77,10 @@ fun MessageItem(
                         }
                     )
                 },
-            horizontalArrangement = if (isAuthor) Arrangement.End else Arrangement.Start
+            horizontalArrangement = if (isAuthor) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Bottom
         ) {
             if (!isAuthor) {
-                // Profile picture
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // TODO: Load profile picture
-                    Text(
-                        text = message.username.take(1).uppercase(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
@@ -101,17 +90,6 @@ fun MessageItem(
                     .widthIn(max = 280.dp),
                 horizontalAlignment = if (isAuthor) Alignment.End else Alignment.Start
             ) {
-                if (!isAuthor) {
-                    // Username
-                    Text(
-                        text = message.username,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-
                 // Reply preview
                 message.reply_to?.let { replyTo ->
                     ReplyPreview(
@@ -121,6 +99,7 @@ fun MessageItem(
                 }
 
                 // Message bubble
+                val isDark = isSystemInDarkTheme()
                 Box(
                     modifier = Modifier
                         .clip(
@@ -131,22 +110,54 @@ fun MessageItem(
                                 bottomEnd = if (isAuthor) 8.dp else 20.dp
                             )
                         )
-                        .background(
+                        .then(
                             if (isAuthor) {
-                                MaterialTheme.colorScheme.primaryContainer
+                                Modifier.shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(
+                                        topStart = 20.dp,
+                                        topEnd = 20.dp,
+                                        bottomStart = 20.dp,
+                                        bottomEnd = 8.dp
+                                    ),
+                                    spotColor = if (isDark) Color(0x66000000) else Color(0x33000000)
+                                )
                             } else {
-                                MaterialTheme.colorScheme.surfaceContainerHighest
+                                Modifier
+                            }
+                        )
+                        .background(
+                            brush = if (isAuthor) {
+                                getMessageGradient(isDark)
+                            } else {
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    )
+                                )
                             }
                         )
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Column {
+                        // Username inside bubble (for received messages)
+                        if (!isAuthor) {
+                            Text(
+                                text = message.username,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+
                         // Message content
                         Text(
                             text = message.content,
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isAuthor) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
+                                Color.White
                             } else {
                                 MaterialTheme.colorScheme.onSurface
                             }
@@ -163,7 +174,7 @@ fun MessageItem(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 11.sp,
                                 color = if (isAuthor) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    Color.White.copy(alpha = 0.7f)
                                 } else {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 }
@@ -175,7 +186,7 @@ fun MessageItem(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 11.sp,
                                     color = if (isAuthor) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        Color.White.copy(alpha = 0.7f)
                                     } else {
                                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     }
@@ -186,7 +197,15 @@ fun MessageItem(
                 }
             }
 
-            if (isAuthor) {
+            if (!isAuthor) {
+                Spacer(modifier = Modifier.width(8.dp))
+                // Avatar at bottom
+                Avatar(
+                    profilePictureUrl = message.profile_picture,
+                    displayName = message.username,
+                    size = 32.dp
+                )
+            } else {
                 Spacer(modifier = Modifier.width(8.dp))
             }
         }
@@ -223,18 +242,31 @@ private fun ReplyPreview(
     }
 }
 
-@OptIn(ExperimentalTime::class)
+@ExperimentalTime
 private fun formatTime(timestamp: String): String {
     return try {
         val instant = Instant.parse(timestamp)
         val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        String.format(
-            "%02d:%02d",
-            localDateTime.hour,
-            localDateTime.minute
-        )
+        val hour = localDateTime.hour.toString().padStart(2, '0')
+        val minute = localDateTime.minute.toString().padStart(2, '0')
+        "$hour:$minute"
     } catch (e: Exception) {
-        ""
+        // Fallback: try parsing without timezone if it fails
+        try {
+            val parts = timestamp.split("T")
+            if (parts.size == 2) {
+                val timePart = parts[1].split(".")[0]
+                if (timePart.length >= 5) {
+                    timePart.take(5) // Return HH:mm
+                } else {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e2: Exception) {
+            ""
+        }
     }
 }
 

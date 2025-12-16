@@ -10,6 +10,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.logging.LoggingConfig
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -58,7 +59,7 @@ inline fun HttpClientConfig<*>.defaultRequest(
  * @param settings Lambda to configure the [Logging.Config].
  */
 inline fun HttpClientConfig<*>.logging(
-    crossinline settings: Logging.Config.() -> Unit
+    crossinline settings: LoggingConfig.() -> Unit
 ) = install(Logging) {
     settings()
 }

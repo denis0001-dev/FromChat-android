@@ -1,22 +1,31 @@
 package ru.fromchat.ui.chat
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,15 +37,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import ru.fromchat.api.Message
 import org.jetbrains.compose.resources.stringResource
 import ru.fromchat.Res
+import ru.fromchat.api.Message
 import ru.fromchat.message_placeholder
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ChatInput(
     text: String,
@@ -47,7 +64,7 @@ fun ChatInput(
     editingMessage: Message? = null,
     onClearReply: () -> Unit,
     onClearEdit: () -> Unit,
-    modifier: Modifier = Modifier
+    hazeState: HazeState
 ) {
     val scope = rememberCoroutineScope()
     var typingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
@@ -67,12 +84,21 @@ fun ChatInput(
         }
     }
 
-    Column(modifier = modifier) {
+    Column(
+        Modifier
+            .windowInsetsPadding(
+                WindowInsets.ime.add(WindowInsets.navigationBars)
+            )
+    ) {
         // Reply preview
         replyTo?.let { reply ->
             ReplyPreviewBar(
                 replyTo = reply,
-                onClose = onClearReply
+                onClose = onClearReply,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .hazeEffect(hazeState, style = HazeMaterials.thick())
             )
         }
 
@@ -80,50 +106,88 @@ fun ChatInput(
         editingMessage?.let { edit ->
             EditPreviewBar(
                 message = edit,
-                onClose = onClearEdit
+                onClose = onClearEdit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .hazeEffect(hazeState, style = HazeMaterials.thick())
             )
         }
 
-        // Input field
-        Row(
+        // Input field with blur
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom
+                .background(Color.Transparent)
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        text = stringResource(Res.string.message_placeholder),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                },
-                shape = RoundedCornerShape(24.dp),
-                maxLines = 5,
-                singleLine = false
-            )
-
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank()) {
-                        onSend(text.trim())
-                        onTextChange("")
-                        typingHandler.stopTyping()
-                    }
-                },
-                enabled = text.isNotBlank()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Send",
-                    tint = if (text.isNotBlank()) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                val shape = RoundedCornerShape(24.dp)
+
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .border(
+                            Dp.Hairline,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            shape
+                        )
+                        .clip(shape)
+                        .hazeEffect(
+                            state = hazeState,
+                            style = HazeMaterials.thin()
+                        ),
+                    placeholder = {
+                        Text(
+                            text = stringResource(Res.string.message_placeholder),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    shape = shape,
+                    maxLines = 5,
+                    singleLine = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        errorContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent,
+                        errorBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
+                    ),
+                    trailingIcon = {
+                        if (text.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        onSend(text.trim())
+                                        onTextChange("")
+                                        typingHandler.stopTyping()
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 )
             }
@@ -138,11 +202,9 @@ private fun ReplyPreviewBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = modifier, // hazeEffect moved to ChatInput where it's called
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier
@@ -184,11 +246,9 @@ private fun EditPreviewBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = modifier, // hazeEffect moved to ChatInput where it's called
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier
@@ -222,4 +282,3 @@ private fun EditPreviewBar(
         }
     }
 }
-
