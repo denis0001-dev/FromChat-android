@@ -57,7 +57,9 @@ data class Message(
     val username: String,
     val profile_picture: String? = null,
     val verified: Boolean? = null,
-    val reply_to: Message? = null
+    val reply_to: Message? = null,
+    val client_message_id: String? = null,
+    val reactions: List<ReactionData>? = null
 ) {
     val utcTimestamp = "${timestamp}Z"
 }
@@ -140,7 +142,8 @@ data class UpdatesMessage(
 @Serializable
 data class WebSocketSendMessageRequest(
     val content: String,
-    val reply_to_id: Int? = null
+    val reply_to_id: Int? = null,
+    val client_message_id: String? = null
 )
 
 @Serializable

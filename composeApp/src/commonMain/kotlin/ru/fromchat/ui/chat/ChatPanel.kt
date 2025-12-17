@@ -201,7 +201,7 @@ abstract class ChatPanel(
         // Retry sending
         try {
             // Extract content from message
-            sendMessage(message.content, message.reply_to?.id)
+            sendMessage(message.content, message.reply_to?.id, message.client_message_id)
         } catch (e: Exception) {
             timeoutJob.cancel()
             pendingMessages.remove(tempId)
@@ -276,7 +276,7 @@ abstract class ChatPanel(
 
         // Actually send the message
         try {
-            sendMessage(content, replyToId)
+            sendMessage(content, replyToId, tempId)
             // Message sent successfully - will be updated when WebSocket confirms
         } catch (error: Exception) {
             // Remove the temporary message from display
@@ -297,7 +297,7 @@ abstract class ChatPanel(
     }
 
     // Abstract methods to implement
-    abstract suspend fun sendMessage(content: String, replyToId: Int?)
+    abstract suspend fun sendMessage(content: String, replyToId: Int?, clientMessageId: String?)
     abstract suspend fun loadMessages()
     abstract suspend fun loadMoreMessages()
     abstract suspend fun handleWebSocketMessage(message: WebSocketMessage)

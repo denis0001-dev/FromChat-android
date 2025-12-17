@@ -5,7 +5,10 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.MessageDeletedData
+import ru.fromchat.api.ReactionUpdateData
+import ru.fromchat.api.TypingUpdateData
 import ru.fromchat.api.WebSocketMessage
+import ru.fromchat.api.WebSocketUpdatesData
 import ru.fromchat.core.Logger
 
 class PublicChatPanel(
@@ -24,8 +27,14 @@ class PublicChatPanel(
         updateState { it.copy(title = chatName) }
     }
 
-    override suspend fun sendMessage(content: String, replyToId: Int?) {
-        ApiClient.sendMessage(content, replyToId)
+    private fun handleReactionUpdate(reactionUpdate: ReactionUpdateData) {
+        updateMessage(reactionUpdate.message_id) { message ->
+            message.copy(reactions = reactionUpdate.reactions)
+        }
+    }
+
+    override suspend fun sendMessage(content: String, replyToId: Int?, clientMessageId: String?) {
+        ApiClient.sendMessage(content, replyToId, clientMessageId)
     }
 
     override suspend fun loadMessages() {
@@ -75,57 +84,73 @@ class PublicChatPanel(
         }
     }
 
-    override suspend fun handleWebSocketMessage(message: WebSocketMessage) {
+    private suspend fun handleSingleUpdate(updateMessage: WebSocketMessage) {
         val json = ApiClient.json
-        Logger.d("PublicChatPanel", "Handling WebSocket message: type=${message.type}")
-        when (message.type) {
+        when (updateMessage.type) {
             "newMessage" -> {
-                val data = message.data ?: return
-                // Data is directly a Message, not wrapped
+                val data = updateMessage.data ?: return
                 val newMsg = json.decodeFromJsonElement<Message>(data)
                 Logger.d("PublicChatPanel", "New message received: id=${newMsg.id}, content=${newMsg.content.take(50)}")
 
-                // Check if this is a confirmation of a message we sent
-                val isOurMessage = newMsg.user_id == currentUserId
-                if (isOurMessage) {
-                    // This is our message being confirmed, find the temp message and replace it
-                    val tempMessages = _state.messages.filter { it.id < 0 }
-                    for (tempMsg in tempMessages) {
-                        if (tempMsg.content == newMsg.content) {
-                            // Replace temp message with confirmed
-                            updateState { currentState ->
-                                currentState.copy(
-                                    messages = currentState.messages.map { msg ->
-                                        if (msg.id < 0 && msg.content == newMsg.content) {
-                                            newMsg
-                                        } else {
-                                            msg
-                                        }
-                                    }
-                                )
-                            }
-                            return
-                        }
-                    }
+                if (newMsg.client_message_id != null && newMsg.user_id == currentUserId) {
+                    handleMessageConfirmed(newMsg.client_message_id, newMsg)
+                } else {
+                    addMessage(newMsg)
                 }
-
-                addMessage(newMsg)
             }
             "messageEdited" -> {
-                val data = message.data ?: return
-                // Data is directly a Message
+                val data = updateMessage.data ?: return
                 val editedMsg = json.decodeFromJsonElement<Message>(data)
                 updateMessage(editedMsg.id) { editedMsg }
             }
             "messageDeleted" -> {
-                val data = message.data ?: return
-                // Data is { message_id: Int }
+                val data = updateMessage.data ?: return
                 val deletedData = json.decodeFromJsonElement<MessageDeletedData>(data)
                 removeMessage(deletedData.message_id)
             }
-            "typing" -> {
-                // Typing status is handled in ChatScreen
+            "reactionUpdate" -> {
+                val data = updateMessage.data ?: return
+                val reactionUpdate = json.decodeFromJsonElement<ReactionUpdateData>(data)
+                handleReactionUpdate(reactionUpdate)
             }
+            "typing" -> {
+                val data = updateMessage.data ?: return
+                val typingData = json.decodeFromJsonElement<TypingUpdateData>(data)
+                typingHandler.handleTypingEvent(typingData.userId, typingData.username)
+            }
+            "stopTyping" -> {
+                val data = updateMessage.data ?: return
+                val typingData = json.decodeFromJsonElement<TypingUpdateData>(data)
+                typingHandler.handleStopTypingEvent(typingData.userId)
+            }
+            "statusUpdate" -> {
+                // Handled in ChatScreen or by global WebSocketManager listeners
+            }
+            "suspended" -> {
+                // Handled by global WebSocketManager listeners or shown as a toast
+            }
+            "account_deleted" -> {
+                // Handled by global WebSocketManager listeners or shown as a toast
+            }
+            else -> {
+                Logger.w("PublicChatPanel", "Unhandled WebSocket update type: ${updateMessage.type}")
+            }
+        }
+    }
+
+    override suspend fun handleWebSocketMessage(message: WebSocketMessage) {
+        Logger.d("PublicChatPanel", "Handling raw WebSocket message: type=${message.type}")
+        if (message.type == "updates") {
+            val json = ApiClient.json
+            val data = message.data ?: return
+            val updatesData = json.decodeFromJsonElement<WebSocketUpdatesData>(data)
+            Logger.d("PublicChatPanel", "Received ${updatesData.updates.size} batched updates (seq: ${updatesData.seq})")
+            updatesData.updates.forEach { update ->
+                handleSingleUpdate(update)
+            }
+        } else {
+            // Fallback for non-batched messages (legacy or direct signals)
+            handleSingleUpdate(message)
         }
     }
 

@@ -1,3 +1,8 @@
 ---
 alwaysApply: true
 ---
+
+When working with the mobile app:
+
+- Don't say anything when implementing the solution to my problem, just call the necessary tools and after that provide a concise result.
+- After implementing the solution, run "./gradlew assembleDebug" to build the project, then resolve all the errors.

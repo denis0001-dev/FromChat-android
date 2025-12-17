@@ -111,7 +111,7 @@ object ApiClient {
     }
 
     // WebSocket send helpers
-    suspend fun sendMessage(content: String, replyToId: Int? = null) {
+    suspend fun sendMessage(content: String, replyToId: Int? = null, clientMessageId: String? = null) {
         val token = token ?: throw IllegalStateException("Not authenticated")
         WebSocketManager.send(
             WebSocketMessage(
@@ -123,7 +123,8 @@ object ApiClient {
                 data = json.encodeToJsonElement(
                     WebSocketSendMessageRequest(
                         content = content,
-                        reply_to_id = replyToId
+                        reply_to_id = replyToId,
+                        client_message_id = clientMessageId
                     )
                 )
             )
