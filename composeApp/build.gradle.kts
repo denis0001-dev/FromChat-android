@@ -10,7 +10,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.22"
 }
 
-    kotlin {
+kotlin {
     androidTarget()
 
     compilerOptions {
@@ -27,14 +27,14 @@ plugins {
             isStatic = true
         }
     }
-    
+
     sourceSets {
         all {
             languageSettings {
                 optIn("kotlin.RequiresOptIn")
             }
         }
-        
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -63,21 +63,21 @@ plugins {
             implementation(libs.kotlinx.serialization.json)
 
             implementation(libs.kotlinx.io.core)
-            
+
             // Ktor - force version 2.3.12 to avoid conflicts with Coil 3's Ktor 3
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.serialization.kotlinx.json)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.logging)
-            
+
             // Datetime
             implementation(libs.kotlinx.datetime)
-            
+
             // Coil for image loading (multiplatform)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
-            
+
             implementation(project(":utils"))
         }
 

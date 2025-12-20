@@ -41,7 +41,7 @@
     <string name="server_config_title">Server Configuration</string>
     <string name="server_config_subtitle">Enter server details to connect</string>
     <string name="server_url_label">Server URL</string>
-    <string name="server_url_hint">fromchat.ru</string>
+    <string name="server_url_hint">example.com</string>
     <string name="https_enabled">Use HTTPS</string>
     <string name="save_continue">Save &amp; Continue</string>
 

@@ -37,3 +37,7 @@ data class TypingUpdateData(
     val username: String
 )
 
+@Serializable
+data class WebSocketAuthMessage(
+    val token: String
+)

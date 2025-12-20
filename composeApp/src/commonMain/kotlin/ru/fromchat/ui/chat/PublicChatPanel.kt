@@ -1,7 +1,7 @@
 package ru.fromchat.ui.chat
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.coroutines.launch
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
 import ru.fromchat.api.MessageDeletedData
@@ -25,6 +25,13 @@ class PublicChatPanel(
 
     init {
         updateState { it.copy(title = chatName) }
+        // Observe typing users from the handler and update panel state
+        scope.launch {
+            typingHandler.typingUsers.collect { users ->
+                Logger.d("PublicChatPanel", "Typing users updated in handler: ${users.map { it.username }}")
+                updateState { it.copy(typingUsers = users) }
+            }
+        }
     }
 
     private fun handleReactionUpdate(reactionUpdate: ReactionUpdateData) {
@@ -84,12 +91,12 @@ class PublicChatPanel(
         }
     }
 
-    private suspend fun handleSingleUpdate(updateMessage: WebSocketMessage) {
+    private fun handleSingleUpdate(updateMessage: WebSocketMessage) {
         val json = ApiClient.json
         when (updateMessage.type) {
             "newMessage" -> {
                 val data = updateMessage.data ?: return
-                val newMsg = json.decodeFromJsonElement<Message>(data)
+                val newMsg = json.decodeFromJsonElement(Message.serializer(), data)
                 Logger.d("PublicChatPanel", "New message received: id=${newMsg.id}, content=${newMsg.content.take(50)}")
 
                 if (newMsg.client_message_id != null && newMsg.user_id == currentUserId) {
@@ -100,27 +107,29 @@ class PublicChatPanel(
             }
             "messageEdited" -> {
                 val data = updateMessage.data ?: return
-                val editedMsg = json.decodeFromJsonElement<Message>(data)
+                val editedMsg = json.decodeFromJsonElement(Message.serializer(), data)
                 updateMessage(editedMsg.id) { editedMsg }
             }
             "messageDeleted" -> {
                 val data = updateMessage.data ?: return
-                val deletedData = json.decodeFromJsonElement<MessageDeletedData>(data)
+                val deletedData = json.decodeFromJsonElement(MessageDeletedData.serializer(), data)
                 removeMessage(deletedData.message_id)
             }
             "reactionUpdate" -> {
                 val data = updateMessage.data ?: return
-                val reactionUpdate = json.decodeFromJsonElement<ReactionUpdateData>(data)
+                val reactionUpdate = json.decodeFromJsonElement(ReactionUpdateData.serializer(), data)
                 handleReactionUpdate(reactionUpdate)
             }
             "typing" -> {
                 val data = updateMessage.data ?: return
-                val typingData = json.decodeFromJsonElement<TypingUpdateData>(data)
+                val typingData = json.decodeFromJsonElement(TypingUpdateData.serializer(), data)
+                Logger.d("PublicChatPanel", "Received typing event for user: ${typingData.username}")
                 typingHandler.handleTypingEvent(typingData.userId, typingData.username)
             }
             "stopTyping" -> {
                 val data = updateMessage.data ?: return
-                val typingData = json.decodeFromJsonElement<TypingUpdateData>(data)
+                val typingData = json.decodeFromJsonElement(TypingUpdateData.serializer(), data)
+                Logger.d("PublicChatPanel", "Received stopTyping event for user: ${typingData.username}")
                 typingHandler.handleStopTypingEvent(typingData.userId)
             }
             "statusUpdate" -> {
@@ -143,7 +152,7 @@ class PublicChatPanel(
         if (message.type == "updates") {
             val json = ApiClient.json
             val data = message.data ?: return
-            val updatesData = json.decodeFromJsonElement<WebSocketUpdatesData>(data)
+            val updatesData = json.decodeFromJsonElement(WebSocketUpdatesData.serializer(), data)
             Logger.d("PublicChatPanel", "Received ${updatesData.updates.size} batched updates (seq: ${updatesData.seq})")
             updatesData.updates.forEach { update ->
                 handleSingleUpdate(update)
@@ -170,4 +179,3 @@ class PublicChatPanel(
 
     override fun getTypingHandler(): TypingHandler = typingHandler
 }
-

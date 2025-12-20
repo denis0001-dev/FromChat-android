@@ -8,6 +8,7 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.pingInterval
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -21,6 +22,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.core.config.Config
 import ru.fromchat.utils.failOnError
 import kotlin.concurrent.Volatile
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Creates a platform-specific HTTP client that supports WebSockets
@@ -47,7 +49,9 @@ object ApiClient {
             level = LogLevel.INFO
         }
 
-        install(WebSockets)
+        install(WebSockets) {
+            pingInterval = 5000.milliseconds // Send a ping every 5 seconds to keep the connection alive
+        }
     }
 
     @Volatile
@@ -58,7 +62,7 @@ object ApiClient {
 
     suspend fun login(request: LoginRequest) =
         http
-            .post("${Config.getApiBaseUrl()}/login") {
+            .post("${Config.apiBaseUrl}/login") {
                 contentType(ContentType.Application.Json)
                 setBody(request.also { ru.fromchat.core.Logger.d("ApiClient", "Login request: $it") })
             }
@@ -71,7 +75,7 @@ object ApiClient {
 
     suspend fun register(request: RegisterRequest) =
         http
-            .post("${Config.getApiBaseUrl()}/register") {
+            .post("${Config.apiBaseUrl}/register") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -79,7 +83,7 @@ object ApiClient {
 
     suspend fun getMessages(limit: Int = 50, beforeId: Int? = null) =
         http
-            .get("${Config.getApiBaseUrl()}/get_messages") {
+            .get("${Config.apiBaseUrl}/get_messages") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token ?: throw IllegalStateException("Not authenticated"))
                 parameter("limit", limit)
@@ -90,7 +94,7 @@ object ApiClient {
 
     suspend fun send(message: String) =
         http
-            .post("${Config.getApiBaseUrl()}/send_message") {
+            .post("${Config.apiBaseUrl}/send_message") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token!!)
                 setBody(SendMessageRequest(message))
@@ -102,7 +106,7 @@ object ApiClient {
     suspend fun logout(authToken: String) {
         // Don't throw on logout errors, just try to logout
         try {
-            http.get("${Config.getApiBaseUrl()}/logout") {
+            http.get("${Config.apiBaseUrl}/logout") {
                 bearerAuth(authToken)
             }
         } catch (e: Exception) {

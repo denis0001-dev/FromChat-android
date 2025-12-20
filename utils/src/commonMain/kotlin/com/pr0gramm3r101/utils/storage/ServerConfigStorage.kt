@@ -43,7 +43,7 @@ object ServerConfigStorage {
     }
     
     suspend fun getConfig(): ServerConfigData {
-        val url = getServerUrl() ?: "fromchat.ru"
+        val url = getServerUrl() ?: throw IllegalStateException("Server URL not found in storage")
         val https = getHttpsEnabled() ?: true
         return ServerConfigData(url, https)
     }

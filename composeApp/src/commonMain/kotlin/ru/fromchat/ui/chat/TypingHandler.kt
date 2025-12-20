@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import ru.fromchat.api.ApiClient
 import kotlin.time.Duration.Companion.seconds
 
@@ -22,6 +23,7 @@ interface TypingHandler {
     val typingUsers: StateFlow<List<TypingUser>>
 }
 
+@Serializable
 data class TypingUser(
     val userId: Int,
     val username: String

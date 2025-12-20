@@ -22,7 +22,8 @@ data class ChatPanelState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
     val hasMoreMessages: Boolean = false,
-    val isLoadingMore: Boolean = false
+    val isLoadingMore: Boolean = false,
+    val typingUsers: List<TypingUser> = emptyList()
 )
 
 /**

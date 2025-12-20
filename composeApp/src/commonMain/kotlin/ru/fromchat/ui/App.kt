@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -15,7 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.IntOffset
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,6 +63,29 @@ fun App() {
                     startDestination = "serverConfig"
                 }
             }
+        }
+    }
+
+    // Observe lifecycle events to manage WebSocket connection
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    // Connect WebSocket when app comes to foreground
+                    WebSocketManager.connect()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Disconnect WebSocket when app goes to background
+                    WebSocketManager.disconnect()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -111,8 +139,6 @@ fun App() {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    // Ensure WebSocket is connected after login
-                                    WebSocketManager.connect()
                                     navController.navigate("chat") {
                                         popUpTo("login") { inclusive = true }
                                     }

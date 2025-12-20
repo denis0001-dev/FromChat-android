@@ -63,8 +63,8 @@ fun ServerConfigScreen() {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     
     // Load existing config if available
-    var serverUrl by remember { mutableStateOf("fromchat.ru") }
-    var httpsEnabled by remember { mutableStateOf(true) }
+    var serverUrl by remember { mutableStateOf("") }
+    var httpsEnabled by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         val config = Config.serverConfig.value

@@ -61,9 +61,9 @@ import org.jetbrains.compose.resources.stringResource
 import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.Message
-import ru.fromchat.api.TypingData
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.api.WebSocketMessage
+import ru.fromchat.api.WebSocketUpdatesData
 import ru.fromchat.back
 import ru.fromchat.core.Logger
 import ru.fromchat.ui.LocalNavController
@@ -80,10 +80,10 @@ fun ChatScreen(
     // Observe state changes
     LaunchedEffect(panel) {
         panel.setOnStateChange { newState ->
-            Logger.d("ChatScreen", "State change callback received: messages=${newState.messages.size}")
+            Logger.d("ChatScreen", "State change callback received: messages=${newState.messages.size}, typingUsers=${newState.typingUsers.map { it.username }}")
             // Force state update to trigger recomposition
             panelState = newState.copy() // Ensure new instance
-            Logger.d("ChatScreen", "panelState updated: messages=${panelState.messages.size}")
+            Logger.d("ChatScreen", "panelState updated: messages=${panelState.messages.size}, typingUsers=${panelState.typingUsers.map { it.username }}")
         }
         // Initial state
         panelState = panel.getState()
@@ -100,6 +100,11 @@ fun ChatScreen(
     val navController = LocalNavController.current
     val hazeState = rememberHazeState(blurEnabled = true)
 
+    val currentTypingUsers = panelState.typingUsers // Directly use from panelState
+    LaunchedEffect(currentTypingUsers) {
+        Logger.d("ChatScreen", "currentTypingUsers updated (from panelState): ${currentTypingUsers.map { it.username }}")
+    }
+
     // UI state
     var inputText by rememberSaveable { mutableStateOf("") }
     var replyTo by rememberSaveable { mutableStateOf<Message?>(null) }
@@ -113,8 +118,6 @@ fun ChatScreen(
             )
         )
     }
-    var typingUsers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-
     // Collect WebSocket messages
     LaunchedEffect(Unit) {
         WebSocketManager.messages.collect { message ->
@@ -132,7 +135,7 @@ fun ChatScreen(
                     val json = ApiClient.json
                     try {
                         Logger.d("ChatScreen", "Parsing updates message")
-                        val updatesMessage = json.decodeFromJsonElement<ru.fromchat.api.UpdatesMessage>(data)
+                        val updatesMessage = json.decodeFromJsonElement<WebSocketUpdatesData>(data)
                         Logger.d("ChatScreen", "Updates message parsed: ${updatesMessage.updates.size} updates")
                         // Process each update in the batch
                         updatesMessage.updates.forEach { update ->
@@ -142,7 +145,7 @@ fun ChatScreen(
                                 data = update.data
                             )
                             when (update.type) {
-                                "newMessage", "messageEdited", "messageDeleted" -> {
+                                "newMessage", "messageEdited", "messageDeleted", "typing", "stopTyping", "statusUpdate", "suspended", "account_deleted" -> {
                                     Logger.d("ChatScreen", "Launching handleWebSocketMessage for ${update.type}")
                                     scope.launch {
                                         try {
@@ -151,23 +154,6 @@ fun ChatScreen(
                                             Logger.e("ChatScreen", "Error handling WebSocket message: ${e.message}", e)
                                         }
                                     }
-                                }
-                                "typing" -> {
-                                    val updateData = update.data ?: return@forEach
-                                    val typingData = json.decodeFromJsonElement<TypingData>(updateData)
-                                    if (typingData.userId != currentUserId) {
-                                        typingUsers = typingUsers + (typingData.userId to typingData.username)
-                                        // Remove after timeout
-                                        scope.launch {
-                                            kotlinx.coroutines.delay(3000)
-                                            typingUsers = typingUsers - typingData.userId
-                                        }
-                                    }
-                                }
-                                "stopTyping" -> {
-                                    val updateData = update.data ?: return@forEach
-                                    val typingData = json.decodeFromJsonElement<TypingData>(updateData)
-                                    typingUsers = typingUsers - typingData.userId
                                 }
                             }
                         }
@@ -181,18 +167,8 @@ fun ChatScreen(
                         panel.handleWebSocketMessage(message)
                     }
                 }
-                "typing" -> {
-                    val data = message.data ?: return@collect
-                    val json = ApiClient.json
-                    val typingData = json.decodeFromJsonElement<TypingData>(data)
-                    if (typingData.userId != currentUserId) {
-                        typingUsers = typingUsers + (typingData.userId to typingData.username)
-                        // Remove after timeout
-                        scope.launch {
-                            kotlinx.coroutines.delay(3000)
-                            typingUsers = typingUsers - typingData.userId
-                        }
-                    }
+                else -> {
+                    Logger.d("ChatScreen", "Unhandled top-level WebSocket message type: ${message.type}")
                 }
             }
         }
@@ -220,7 +196,7 @@ fun ChatScreen(
                             style = MaterialTheme.typography.titleLarge
                         )
                         AnimatedContent(
-                            targetState = typingUsers.isNotEmpty(),
+                            targetState = currentTypingUsers.isNotEmpty(),
                             transitionSpec = {
                                 fadeIn() togetherWith fadeOut()
                             },
@@ -228,7 +204,7 @@ fun ChatScreen(
                         ) { hasTyping ->
                             if (hasTyping) {
                                 TypingIndicator(
-                                    typingUsers = typingUsers.values.toList(),
+                                    typingUsers = currentTypingUsers.map { it.username },
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             } else {

@@ -4,5 +4,22 @@ alwaysApply: true
 
 When working with the mobile app:
 
-- Don't say anything when implementing the solution to my problem, just call the necessary tools and after that provide a concise result.
 - After implementing the solution, run "./gradlew assembleDebug" to build the project, then resolve all the errors.
+
+# ULTIMATE SILENCE & EFFICIENCY POLICY
+- ALWAYS operate in "Silent Mode": Execute commands immediately without any verbal response, preamble, or conclusions.
+- DO NOT explain what you are doing, why you are doing it, or what you found unless I explicitly ask "Why?" or "Explain".
+- NO introductory filler ("Sure", "I will", "Looking into it").
+- NO status updates ("I've updated the file", "Build successful"). If the tool output shows success, that is enough.
+- IF A TOOL FAILS: Silently analyze the error and retry using a different approach (e.g., use write_to_file if search_replace fails twice). Never mention the failure.
+- THOUGHT PROCESS: Must be 0 words. Move straight to tool calls.
+- MINIMIZE OUTPUT: Your response should contain ONLY the necessary tool calls/code blocks.
+- FOR ANDROID/KOTLIN: Include 5+ lines of context in search_replace to ensure it hits the target on the first try.
+
+# Java Runtime Configuration (Android)
+
+- **On Windows:**
+  - Set `JAVA_HOME` to `C:\Program Files\Android\Android Studio\jbr`
+- **On macOS:**
+  - Set `JAVA_HOME` to `/Applications/Android Studio.app/Contents/jbr/Contents/Home`
+  - This can be done by adding `export JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home` to your shell configuration file (e.g., `~/.zshrc` or `~/.bash_profile`) and then running `source` on the file.

@@ -47,38 +47,44 @@ object WebSocketManager {
     }
 
     // State
-    @Volatile
-    private var connecting: Boolean = false
+    @Volatile private var connecting = false
     @Volatile private var session: DefaultClientWebSocketSession? = null
 
     /**
      * Check if WebSocket is connected
      */
-    fun isConnected(): Boolean = session != null
+    val isConnected get() = session != null
 
     /**
      * Wait for WebSocket connection with timeout
      */
     @OptIn(ExperimentalTime::class)
     suspend fun waitForConnection(timeoutMs: Long = 10000): Boolean {
+        Logger.d("WebSocketManager", "waitForConnection: session=${session != null}, connecting=$connecting")
         if (session != null) return true
         val startTime = Clock.System.now().toEpochMilliseconds()
         while (session == null && (Clock.System.now().toEpochMilliseconds() - startTime) < timeoutMs) {
             delay(100)
         }
+        Logger.d("WebSocketManager", "waitForConnection finished: session=${session != null}")
         return session != null
     }
 
     fun connect() {
-        Logger.d("WebSocketManager", "Connecting to WebSocket")
-        if (connecting) return
+        Logger.d("WebSocketManager", "connect() called. current session=${session != null}, connecting=$connecting")
+        if (connecting) {
+            Logger.d("WebSocketManager", "connect() ignored: already connecting")
+            return
+        }
         connecting = true
+        Logger.d("WebSocketManager", "connecting set to true")
 
         scope.launch {
             while (isActive) {
+                Logger.d("WebSocketManager", "Connection loop active. isActive=$isActive")
                 try {
-                    val wsUrl = Config.getWebSocketUrl()
-                    Logger.d("WebSocketManager", "Connecting to: $wsUrl")
+                    val wsUrl = Config.webSocketUrl
+                    Logger.d("WebSocketManager", "Attempting to connect to: $wsUrl")
                     ApiClient.http.webSocket(
                         method = HttpMethod.Get,
                         request = {
@@ -87,25 +93,38 @@ object WebSocketManager {
                     ) {
                         session = this
                         connecting = false
+                        Logger.d("WebSocketManager", "WebSocket connected. connecting set to false")
 
-                        Logger.d("WebSocketManager", "WebSocket connected")
+                        // Send ping message immediately after connection for authentication
+                        ApiClient.token?.let {
+                            Logger.d("WebSocketManager", "Sending WebSocket ping for authentication")
+                            send(WebSocketMessage(type = "ping", credentials = WebSocketCredentials(scheme = "Bearer", credentials = it)))
+                        }
+
                         for (frame in incoming) {
                             val text = (frame as? Frame.Text)?.readText() ?: continue
                             Logger.d("WebSocketManager", "Received payload: $text")
                             try {
-                                // Check if this is an "updates" message - it has a different structure
                                 val jsonTree = json.parseToJsonElement(text)
                                 val messageType = jsonTree.jsonObject["type"]?.jsonPrimitive?.content
                                 
-                                val msg = if (messageType == "updates") {
-                                    // Wrap in WebSocketMessage with the entire JSON tree as data
-                                    WebSocketMessage(
-                                        type = "updates",
-                                        data = jsonTree
-                                    )
-                                } else {
-                                    // Parse as regular WebSocketMessage
-                                    json.decodeFromString<WebSocketMessage>(text)
+                                val msg = when (messageType) {
+                                    "updates" -> {
+                                        WebSocketMessage(
+                                            type = "updates",
+                                            data = jsonTree
+                                        )
+                                    }
+                                    "typing", "stopTyping" -> {
+                                        // These messages are expected to be direct, without additional data in the web client
+                                        WebSocketMessage(
+                                            type = messageType,
+                                            data = jsonTree.jsonObject["data"] // Extract data if present
+                                        )
+                                    }
+                                    else -> {
+                                        json.decodeFromString<WebSocketMessage>(text)
+                                    }
                                 }
                                 
                                 globalHandlers.forEach { it(msg) }
@@ -117,12 +136,13 @@ object WebSocketManager {
                         }
                     }
                 } catch (e: Throwable) {
-                    Logger.w("WebSocketManager", "An error occurred: ${e.message}", e)
+                    Logger.w("WebSocketManager", "An error occurred during WebSocket connection: ${e.message}", e)
                     connecting = false
                     session = null
+                    Logger.d("WebSocketManager", "Reconnecting in 3 seconds...")
                     delay(3000)
                 } finally {
-                    Logger.w("WebSocketManager", "WebSocket disconnected")
+                    Logger.w("WebSocketManager", "WebSocket disconnected. session set to null, connecting set to false")
                     session = null
                     connecting = false
                 }
@@ -190,6 +210,15 @@ object WebSocketManager {
     }
 
     fun shutdown() {
+        Logger.d("WebSocketManager", "shutdown() called. Cancelling scope.")
         scope.cancel()
+    }
+
+    fun disconnect() {
+        Logger.d("WebSocketManager", "disconnect() called. current session=${session != null}")
+        session?.cancel() // Close the WebSocket session
+        session = null
+        connecting = false
+        Logger.d("WebSocketManager", "Disconnected. session set to null, connecting set to false")
     }
 }

@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 object Config {
     private val _serverConfig = MutableStateFlow<ServerConfigData?>(null)
     val serverConfig: StateFlow<ServerConfigData?> = _serverConfig.asStateFlow()
+
+    private val config
+        get() = _serverConfig.value ?: throw IllegalStateException("Server configuration not initialized")
     
     /**
      * Initialize configuration by loading from storage
@@ -31,25 +34,17 @@ object Config {
     /**
      * Get API base URL based on current server configuration
      */
-    fun getApiBaseUrl(): String {
-        val config = _serverConfig.value ?: ServerConfigData("fromchat.ru", true)
-        val protocol = if (config.httpsEnabled) "https" else "http"
-        return "$protocol://${config.serverUrl}/api"
-    }
+    val apiBaseUrl
+        get() = "${if (config.httpsEnabled) "https" else "http"}://${config.serverUrl}/api"
     
     /**
      * Get WebSocket URL based on current server configuration
      */
-    fun getWebSocketUrl(): String {
-        val config = _serverConfig.value ?: ServerConfigData("fromchat.ru", true)
-        val protocol = if (config.httpsEnabled) "wss" else "ws"
-        return "$protocol://${config.serverUrl}/api/chat/ws"
-    }
+    val webSocketUrl
+        get() = "${if (config.httpsEnabled) "wss" else "ws"}://${config.serverUrl}/api/chat/ws"
     
     /**
      * Checks if server configuration exists
      */
-    suspend fun hasServerConfig(): Boolean {
-        return ServerConfigStorage.hasConfiguration()
-    }
+    suspend fun hasServerConfig() = ServerConfigStorage.hasConfiguration()
 }

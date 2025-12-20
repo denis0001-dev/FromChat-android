@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
@@ -14,6 +16,9 @@ kotlin {
         namespace = "com.pr0gramm3r101.utils"
         compileSdk = 36
         minSdk = 24
+
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+        androidResources.enable = true
     }
 
     listOf(

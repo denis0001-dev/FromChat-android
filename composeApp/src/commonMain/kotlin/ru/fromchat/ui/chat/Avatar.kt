@@ -45,7 +45,7 @@ fun Avatar(
             val fullUrl = if (profilePictureUrl.startsWith("http")) {
                 profilePictureUrl
             } else {
-                "${Config.getApiBaseUrl()}$profilePictureUrl"
+                "${Config.apiBaseUrl}$profilePictureUrl"
             }
             
             AsyncImage(
