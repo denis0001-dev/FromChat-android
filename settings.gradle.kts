@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":utils:android")
+
+
 rootProject.name = "FromChat"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
@@ -30,5 +33,5 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp", ":utils")
+include(":app:shared", ":utils:shared", ":app:android")
  
