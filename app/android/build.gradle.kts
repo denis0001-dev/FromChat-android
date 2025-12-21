@@ -17,21 +17,22 @@ kotlin {
     }
 }
 
-// 1. Описываем задачу копирования с созданием правильной структуры
 val fixComposeResourcesStructure = tasks.register<Copy>("fixComposeResourcesStructure") {
     val sharedProject = rootProject.project(":app:shared")
 
-    // Откуда берем (исходные сгенерированные файлы)
-    val sourceDir = sharedProject.layout.buildDirectory
-        .dir("generated/compose/resourceGenerator/preparedResources/commonMain/composeResources")
+    from(
+        sharedProject
+            .layout
+            .buildDirectory
+            .dir("generated/compose/resourceGenerator/preparedResources/commonMain/composeResources")
+    )
 
-    // Куда кладем (создаем промежуточную папку с ПРАВИЛЬНЫМ путем)
-    val outputDir = layout.buildDirectory.dir("intermediates/fixed_compose_res/composeResources/ru.fromchat")
+    into(
+        layout
+            .buildDirectory
+            .dir("intermediates/fixed_compose_res/composeResources/ru.fromchat")
+    )
 
-    from(sourceDir)
-    into(outputDir)
-
-    // Убеждаемся, что генерация в shared уже прошла
     dependsOn(sharedProject.tasks.matching { it.name.contains("prepareComposeResources", ignoreCase = true) })
     dependsOn(sharedProject.tasks.matching { it.name.contains("copyNonXmlValueResources", ignoreCase = true) })
 }
@@ -55,7 +56,7 @@ android {
             }
 
             storeFile = file("keys/release.jks")
-            keyAlias = "release"
+            keyAlias = "key0"
             storePassword = keystoreProperties["storePassword"].toString()
             keyPassword = keystoreProperties["keyPassword"].toString()
             enableV3Signing = true
@@ -94,6 +95,10 @@ android {
 }
 
 tasks.withType<MergeSourceSetFolders>().configureEach {
+    dependsOn(fixComposeResourcesStructure)
+}
+
+tasks.matching { it.name.contains("lintVital", ignoreCase = true) }.configureEach {
     dependsOn(fixComposeResourcesStructure)
 }
 
