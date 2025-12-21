@@ -1,17 +1,26 @@
 package ru.fromchat.core
 
-import ru.fromchat.ui.Theme
 import com.pr0gramm3r101.utils.settings.Settings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import ru.fromchat.ui.Theme
 
 object Settings {
-    private val settings = Settings.Companion()
+    private val settings = Settings()
+
+    private fun runIO(block: suspend CoroutineScope.() -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch(block = block)
+    }
 
     var materialYou: Boolean
-        get() = settings.getBoolean("materialYou", true)
-        set(value) = settings.putBoolean("materialYou", value)
+        get() = runBlocking { settings.getBoolean("materialYou", true) }
+        set(value) = runIO { settings.putBoolean("materialYou", value) }
 
     var theme: Theme
-        get() = Theme.entries[settings.getInt("theme", Theme.AsSystem.ordinal)]
-        set(value) = settings.putInt("theme", value.ordinal)
+        get() = runBlocking { Theme.entries[settings.getInt("theme", Theme.AsSystem.ordinal)] }
+        set(value) = runIO { settings.putInt("theme", value.ordinal) }
 }
 

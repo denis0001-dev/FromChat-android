@@ -18,6 +18,9 @@ build
 .cxx
 local.properties
 
-keys
+app/android/keys
 releases
 release
+
+*.xcuserstate
+xcuserdata

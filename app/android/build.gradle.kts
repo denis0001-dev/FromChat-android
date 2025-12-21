@@ -1,4 +1,5 @@
 
+import com.android.build.gradle.tasks.MergeSourceSetFolders
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
@@ -50,9 +51,10 @@ android {
     signingConfigs {
         create("release") {
             val keystoreProperties = Properties().apply {
-                load(FileInputStream(rootProject.file("keys/keystore.properties")))
+                load(FileInputStream(file("keys/keystore.properties")))
             }
-            storeFile = rootProject.file("keys/release.jks")
+
+            storeFile = file("keys/release.jks")
             keyAlias = "release"
             storePassword = keystoreProperties["storePassword"].toString()
             keyPassword = keystoreProperties["keyPassword"].toString()
@@ -91,7 +93,7 @@ android {
     }
 }
 
-tasks.withType<com.android.build.gradle.tasks.MergeSourceSetFolders>().configureEach {
+tasks.withType<MergeSourceSetFolders>().configureEach {
     dependsOn(fixComposeResourcesStructure)
 }
 
