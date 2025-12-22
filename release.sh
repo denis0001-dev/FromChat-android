@@ -114,31 +114,34 @@ build_ios() {
     fi
 
     substep "Xcode Archiving (Unsigned)..."
+
+    mkdir -p build/ios
+
     if xcodebuild -project "$IOS_PROJECT_DIR/iosApp.xcodeproj" \
         -scheme iOS \
         -configuration Release \
         -sdk iphoneos \
         -destination 'generic/platform=iOS' \
-        -derivedDataPath build-output \
+        -derivedDataPath build/ios \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
         CODE_SIGNING_ENTITLEMENTS="" \
-        clean build > ios_build.log 2>&1; then
+        build > build/ios/build.log 2>&1; then
 
         success "Xcode build successful."
     else
-        error "Xcode build failed. Check ios_build.log"
+        error "Xcode build failed. Check build/ios/build.log"
         exit 1
     fi
 
     substep "Packaging IPA for TrollStore..."
-    mkdir -p Payload
-    APP_PATH=$(find build-output -name "*.app" -type d | head -n 1)
+    mkdir -p build/ios/Payload
+    APP_PATH=$(find build/ios -name "*.app" -type d | head -n 1)
     if [[ -n "$APP_PATH" ]]; then
-        cp -r "$APP_PATH" Payload/
+        cp -r "$APP_PATH" build/ios/Payload/
         IPA_NAME="FromChat-$TAG-ios-unsigned.ipa"
-        zip -r "releases/$IPA_NAME" Payload > /dev/null
-        rm -rf Payload
+        zip -r "releases/$IPA_NAME" build/ios/Payload > /dev/null
+        rm -rf build/ios/Payload
         IOS_ASSET="releases/$IPA_NAME"
         success "iOS IPA ready: ${CYAN}$IPA_NAME${NC}"
     else
