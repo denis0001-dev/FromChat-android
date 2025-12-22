@@ -21,6 +21,9 @@ object Config {
      */
     suspend fun initialize() {
         _serverConfig.value = ServerConfigStorage.getConfig()
+
+        // Set default values and prevent corruption
+        ServerConfigStorage.getConfig()
     }
     
     /**

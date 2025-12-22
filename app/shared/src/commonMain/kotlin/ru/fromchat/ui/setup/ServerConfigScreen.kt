@@ -52,7 +52,6 @@ import ru.fromchat.https_enabled
 import ru.fromchat.save_continue
 import ru.fromchat.server_config_subtitle
 import ru.fromchat.server_config_title
-import ru.fromchat.server_url_hint
 import ru.fromchat.server_url_label
 import ru.fromchat.ui.LocalNavController
 
@@ -63,16 +62,16 @@ fun ServerConfigScreen() {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     
     // Load existing config if available
-    var serverUrl by remember { mutableStateOf("") }
-    var httpsEnabled by remember { mutableStateOf(false) }
+    var serverUrl by remember { mutableStateOf("fromchat.ru") }
+    var httpsEnabled by remember { mutableStateOf(true) }
     
     LaunchedEffect(Unit) {
-        val config = Config.serverConfig.value
-        if (config != null) {
-            serverUrl = config.serverUrl
-            httpsEnabled = config.httpsEnabled
+        Config.serverConfig.value?.let {
+            serverUrl = it.serverUrl
+            httpsEnabled = it.httpsEnabled
         }
     }
+
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
@@ -82,11 +81,13 @@ fun ServerConfigScreen() {
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = navController::navigateUp) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.back)
-                        )
+                    if (navController.currentBackStackEntry != null) {
+                        IconButton(onClick = navController::navigateUp) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(Res.string.back)
+                            )
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -122,7 +123,7 @@ fun ServerConfigScreen() {
                 value = serverUrl,
                 onValueChange = { serverUrl = it },
                 label = { Text(stringResource(Res.string.server_url_label)) },
-                placeholder = { Text(stringResource(Res.string.server_url_hint)) },
+                placeholder = { Text("fromchat.ru") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -147,16 +148,13 @@ fun ServerConfigScreen() {
                 onClick = {
                     isLoading = true
                     scope.launch {
-                        val config = ServerConfigData(serverUrl, httpsEnabled)
-                        Config.updateServerConfig(config)
+                        Config.updateServerConfig(ServerConfigData(serverUrl, httpsEnabled))
                         
                         // Ensure we're logged out when server config changes
-                        try {
+                        runCatching {
                             ApiClient.token?.let { token ->
                                 ApiClient.logout(token)
                             }
-                        } catch (e: Exception) {
-                            // Ignore logout errors
                         }
                         
                         // Clear API client state

@@ -17,34 +17,31 @@ object ServerConfigStorage {
     private const val SERVER_URL_KEY = "server_url"
     private const val HTTPS_ENABLED_KEY = "https_enabled"
     
-    suspend fun getServerUrl(): String? {
-        val url = storage.getString(SERVER_URL_KEY)
-        return url.ifEmpty { null }
-    }
+    suspend fun getServerUrl() = storage.getString(SERVER_URL_KEY).ifEmpty { null }
     
-    suspend fun setServerUrl(url: String) {
-        storage.putString(SERVER_URL_KEY, url)
-    }
+    suspend fun setServerUrl(url: String) = storage.putString(SERVER_URL_KEY, url)
     
-    suspend fun getHttpsEnabled(): Boolean? {
-        return if (storage.contains(HTTPS_ENABLED_KEY)) {
+    suspend fun getHttpsEnabled() =
+        if (storage.contains(HTTPS_ENABLED_KEY))
             storage.getBoolean(HTTPS_ENABLED_KEY, true)
-        } else {
-            null
-        }
-    }
+        else null
     
     suspend fun setHttpsEnabled(enabled: Boolean) {
         storage.putBoolean(HTTPS_ENABLED_KEY, enabled)
     }
     
-    suspend fun hasConfiguration(): Boolean {
-        return getServerUrl() != null
-    }
+    suspend fun hasConfiguration() = getServerUrl() != null && getHttpsEnabled() != null
     
     suspend fun getConfig(): ServerConfigData {
-        val url = getServerUrl() ?: throw IllegalStateException("Server URL not found in storage")
-        val https = getHttpsEnabled() ?: true
+        var url = getServerUrl()
+        var https = getHttpsEnabled()
+
+        if (url == null || https == null) {
+            url = "fromchat.ru"
+            https = true
+            saveConfig(ServerConfigData(url, https))
+        }
+
         return ServerConfigData(url, https)
     }
     

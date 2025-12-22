@@ -67,4 +67,6 @@
     <string name="typing_single">%1$s is typing…</string>
     <string name="typing_two">%1$s and %2$s are typing…</string>
     <string name="typing_many">%1$s, %2$s and %3$d more are typing…</string>
+
+    <string name="more">More</string>
 </resources>

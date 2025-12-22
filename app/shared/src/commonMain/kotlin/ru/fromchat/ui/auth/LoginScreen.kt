@@ -1,21 +1,31 @@
 package ru.fromchat.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,24 +43,73 @@ import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.LoginRequest
 import ru.fromchat.api.apiRequest
+import ru.fromchat.change_server
 import ru.fromchat.error_unexpected
 import ru.fromchat.fill_all_fields
 import ru.fromchat.login
 import ru.fromchat.login_d
+import ru.fromchat.more
 import ru.fromchat.password
 import ru.fromchat.register_button
+import ru.fromchat.ui.LocalNavController
 import ru.fromchat.ui.RowHeader
 import ru.fromchat.username
 import ru.fromchat.welcome
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     val errorUnexpected = stringResource(Res.string.error_unexpected)
+    val navController = LocalNavController.current
     
-    Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        topBar = {
+            TopAppBar(
+                actions = {
+                    var expanded by remember { mutableStateOf(false) }
+
+                    Box(Modifier.wrapContentSize(Alignment.TopEnd)) {
+                        IconButton(
+                            onClick = {
+                                expanded = true
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = stringResource(Res.string.more)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false } // Закрыть при нажатии вне меню
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(Res.string.change_server))
+                                },
+                                onClick = {
+                                    expanded = false
+                                    navController.navigate("serverConfig")
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.Storage,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
+                    }
+                },
+                title = {}
+            )
+        }
+    ) { innerPadding ->
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var alert by remember { mutableStateOf<String?>(null) }

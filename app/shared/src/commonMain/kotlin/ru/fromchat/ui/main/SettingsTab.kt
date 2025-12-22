@@ -188,20 +188,6 @@ fun SettingsTab(
                         onClick = {
                             // Logout and navigate to server config when server changes
                             scope.launch {
-                                // Logout from current server
-                                try {
-                                    ApiClient.token?.let { token ->
-                                        ApiClient.logout(token)
-                                    }
-                                } catch (e: Exception) {
-                                    // Ignore logout errors (server might be unreachable)
-                                }
-
-                                // Clear API client state
-                                ApiClient.token = null
-                                ApiClient.user = null
-                                WebSocketManager.shutdown()
-
                                 navController.navigate("serverConfig")
                             }
                         },
