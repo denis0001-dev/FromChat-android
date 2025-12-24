@@ -188,13 +188,12 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Column(Modifier.fillMaxWidth()) {
                         Text(
                             text = panelState.title,
                             style = MaterialTheme.typography.titleLarge
                         )
+
                         AnimatedContent(
                             targetState = currentTypingUsers.isNotEmpty(),
                             transitionSpec = {
@@ -207,9 +206,6 @@ fun ChatScreen(
                                     typingUsers = currentTypingUsers.map { it.username },
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
-                            } else {
-                                // Empty space to maintain height
-                                Box(modifier = Modifier.height(0.dp))
                             }
                         }
                     }

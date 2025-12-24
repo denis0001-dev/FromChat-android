@@ -29,7 +29,7 @@ class PublicChatPanel(
         scope.launch {
             typingHandler.typingUsers.collect { users ->
                 Logger.d("PublicChatPanel", "Typing users updated in handler: ${users.map { it.username }}")
-                updateState { it.copy(typingUsers = users) }
+                updateState { it.copy(typingUsers = users.filter { it.userId != currentUserId }) }
             }
         }
     }
@@ -58,7 +58,7 @@ class PublicChatPanel(
             }
             setHasMoreMessages(false) // TODO: Implement has_more from API
             messagesLoaded = true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Handle error
         } finally {
             setLoading(false)
@@ -84,7 +84,7 @@ class PublicChatPanel(
                 }
             }
             setHasMoreMessages(false) // TODO: Implement has_more from API
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Handle error
         } finally {
             setLoadingMore(false)
