@@ -279,7 +279,10 @@ fun ChatScreen(
                     replyTo = replyTo,
                     editingMessage = editingMessage,
                     onClearReply = { replyTo = null },
-                    onClearEdit = { editingMessage = null },
+                    onClearEdit = {
+                        editingMessage = null
+                        inputText = ""
+                    },
                     hazeState = hazeState
                 )
             }
@@ -355,13 +358,17 @@ fun ChatScreen(
             }
 
             // Context menu
+            @Suppress("AssignedValueIsNeverRead")
             MessageContextMenu(
                 state = contextMenuState,
                 isAuthor = contextMenuState.message?.user_id == currentUserId,
                 onDismiss = { contextMenuState = contextMenuState.copy(isOpen = false) },
                 onReply = { message ->
                     replyTo = message
-                    editingMessage = null
+                    if (editingMessage != null) {
+                        editingMessage = null
+                        inputText = ""
+                    }
                 },
                 onEdit = { message ->
                     editingMessage = message

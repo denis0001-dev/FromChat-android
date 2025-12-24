@@ -1,7 +1,12 @@
 package ru.fromchat.ui.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -20,15 +25,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -55,6 +62,78 @@ import org.jetbrains.compose.resources.stringResource
 import ru.fromchat.Res
 import ru.fromchat.api.Message
 import ru.fromchat.message_placeholder
+
+@Composable
+private fun <T> AnimatedPreviewBar(
+    state: T?,
+    content: @Composable (T) -> Unit
+) {
+    AnimatedVisibility(
+        visible = state != null,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        var lastState by remember { mutableStateOf(state) }
+
+        LaunchedEffect(state) {
+            if (state != null) {
+                lastState = state
+            }
+        }
+
+        if (state != null || lastState != null) {
+            content(state ?: lastState!!)
+        }
+    }
+}
+
+@Composable
+private fun PreviewBar(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClose: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+
+        IconButton(onClick = onClose) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
@@ -77,6 +156,7 @@ fun ChatInput(
         if (text.isNotBlank()) {
             typingJob?.cancel()
             typingHandler.sendTyping()
+            @Suppress("AssignedValueIsNeverRead")
             typingJob = scope.launch {
                 delay(3000) // 3 seconds
                 typingHandler.stopTyping()
@@ -90,30 +170,6 @@ fun ChatInput(
     Column(
         Modifier.windowInsetsPadding(WindowInsets.navigationBars)
     ) {
-        // Reply preview
-        replyTo?.let { reply ->
-            ReplyPreviewBar(
-                replyTo = reply,
-                onClose = onClearReply,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .hazeEffect(hazeState, style = HazeMaterials.thick())
-            )
-        }
-
-        // Edit preview
-        editingMessage?.let { edit ->
-            EditPreviewBar(
-                message = edit,
-                onClose = onClearEdit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .hazeEffect(hazeState, style = HazeMaterials.thick())
-            )
-        }
-
         // Input field with blur
         Box(
             modifier = Modifier
@@ -121,28 +177,46 @@ fun ChatInput(
                 .background(Color.Transparent)
                 .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            val shape = RoundedCornerShape(24.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        Dp.Hairline,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        shape
+                    )
+                    .clip(shape)
+                    .hazeEffect(
+                        state = hazeState,
+                        style = HazeMaterials.thin()
+                    )
             ) {
-                val shape = RoundedCornerShape(24.dp)
+                AnimatedPreviewBar(replyTo) { replyTo ->
+                    PreviewBar(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        title = "Replying to ${replyTo.username}",
+                        subtitle = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
+                        onClose = { onClearReply() }
+                    )
+                }
+
+                AnimatedPreviewBar(editingMessage) { message ->
+                    PreviewBar(
+                        icon = Icons.Filled.Edit,
+                        title = "Editing message",
+                        subtitle = message.content.take(50) + if (message.content.length > 50) "..." else "",
+                        onClose = { onClearEdit() }
+                    )
+                }
 
                 OutlinedTextField(
                     value = text,
                     onValueChange = onTextChange,
                     modifier = Modifier
-                        .weight(1f)
-                        .border(
-                            Dp.Hairline,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            shape
-                        )
-                        .clip(shape)
-                        .hazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.thin()
-                        ),
+                        .fillMaxWidth()
+                        .animateContentSize(),
                     placeholder = {
                         Text(
                             text = stringResource(Res.string.message_placeholder),
@@ -195,94 +269,6 @@ fun ChatInput(
                             }
                         }
                     }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReplyPreviewBar(
-    replyTo: Message,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier, // hazeEffect moved to ChatInput where it's called
-        shape = RoundedCornerShape(8.dp),
-        color = Color.Transparent
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Replying to ${replyTo.username}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditPreviewBar(
-    message: Message,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier, // hazeEffect moved to ChatInput where it's called
-        shape = RoundedCornerShape(8.dp),
-        color = Color.Transparent
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Editing message",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = message.content.take(50) + if (message.content.length > 50) "..." else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

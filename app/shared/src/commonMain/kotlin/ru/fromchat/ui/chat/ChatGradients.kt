@@ -1,5 +1,6 @@
 package ru.fromchat.ui.chat
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
@@ -7,90 +8,23 @@ import kotlin.math.abs
 /**
  * Get gradient brush for own messages
  */
-fun getMessageGradient(isDark: Boolean): Brush {
-    return if (isDark) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0xFF9333EA),
-                Color(0xFF6366F1),
-                Color(0xFF2F68C5)
-            ),
-            start = androidx.compose.ui.geometry.Offset(0f, 0f),
-            end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0xFFB794F6),
-                Color(0xFF818CF8),
-                Color(0xFF60A5FA)
-            ),
-            start = androidx.compose.ui.geometry.Offset(0f, 0f),
-            end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
-        )
-    }
-}
-
-/**
- * Get background gradient brushes for chat background
- */
-fun getBackgroundGradients(isDark: Boolean): List<Brush> {
-    return if (isDark) {
+fun getMessageGradient(isDark: Boolean) = Brush.linearGradient(
+    colors = if (isDark) {
         listOf(
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x26DBA1F9),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.2f, 0.8f),
-                radius = 500f
-            ),
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x26F3B7BE),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.8f, 0.2f),
-                radius = 500f
-            ),
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x1AD0C1DA),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.4f, 0.4f),
-                radius = 500f
-            )
+            Color(0xFF9333EA),
+            Color(0xFF6366F1),
+            Color(0xFF2F68C5)
         )
     } else {
         listOf(
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x15B794F6),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.2f, 0.8f),
-                radius = 500f
-            ),
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x15F3B7BE),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.8f, 0.2f),
-                radius = 500f
-            ),
-            Brush.radialGradient(
-                colors = listOf(
-                    Color(0x0DD0C1DA),
-                    Color.Transparent
-                ),
-                center = androidx.compose.ui.geometry.Offset(0.4f, 0.4f),
-                radius = 500f
-            )
+            Color(0xFFB794F6),
+            Color(0xFF818CF8),
+            Color(0xFF60A5FA)
         )
-    }
-}
+    },
+    start = Offset(0f, 0f),
+    end = Offset(1000f, 1000f)
+)
 
 /**
  * Generate a consistent gradient from a name for avatar fallback
@@ -102,21 +36,21 @@ fun generateGradientFromName(name: String): Brush {
     val b = abs((hash / 65536) % 256)
     
     // Create two colors based on hash for gradient
-    val color1 = Color(
-        red = (r + 100).coerceIn(0, 255) / 255f,
-        green = (g + 100).coerceIn(0, 255) / 255f,
-        blue = (b + 100).coerceIn(0, 255) / 255f
-    )
-    val color2 = Color(
-        red = (r + 50).coerceIn(0, 255) / 255f,
-        green = (g + 50).coerceIn(0, 255) / 255f,
-        blue = (b + 50).coerceIn(0, 255) / 255f
-    )
-    
     return Brush.linearGradient(
-        colors = listOf(color1, color2),
-        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(100f, 100f)
+        colors = listOf(
+            Color(
+                red = (r + 100).coerceIn(0, 255) / 255f,
+                green = (g + 100).coerceIn(0, 255) / 255f,
+                blue = (b + 100).coerceIn(0, 255) / 255f
+            ),
+            Color(
+                red = (r + 50).coerceIn(0, 255) / 255f,
+                green = (g + 50).coerceIn(0, 255) / 255f,
+                blue = (b + 50).coerceIn(0, 255) / 255f
+            )
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(100f, 100f)
     )
 }
 
