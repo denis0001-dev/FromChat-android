@@ -24,7 +24,7 @@ navigationCompose = "2.9.1"
 datastore = "1.2.0"
 ktor = "3.3.3"
 slf4j = "1.7.36"
-kotlinxDatetime = "0.7.1"
+kotlinxDatetime = "0.7.1-0.6.x-compat"
 lifecycleRuntimeKtx = "2.10.0"
 composeBom = "2025.12.01"
 
