@@ -52,7 +52,6 @@ step() { echo -e "\n${CYAN}${BOLD}→${NC} ${BOLD}$1${NC}"; }
 substep() { echo -e "  ${GREEN}•${NC} $1"; }
 
 echo -e "${MAGENTA}${BOLD}🚀 FromChat KMP Release Pipeline${NC}"
-[[ "$IS_PRERELEASE" == true ]] && info "Prerelease mode enabled via --pre flag"
 
 # --- Настройка памяти для предотвращения OutOfMemory ---
 export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx8g -Dkotlin.daemon.jvm.options=-Xmx8g"
@@ -67,13 +66,14 @@ PREVTAG=${TAGS[1]:-$TAG}
 substep "Current tag: ${YELLOW}$TAG${NC}"
 substep "Previous tag: ${YELLOW}$PREVTAG${NC}"
 
+# shellcheck disable=SC2001
 BUILD_NUMBER=$(echo "$TAG" | sed 's/[^0-9]//g')
 [[ -z "$BUILD_NUMBER" ]] && BUILD_NUMBER=1
 
 # --- Сборка Android ---
 build_android() {
     step "Building Android Release"
-    if ./gradlew :app:android:assembleRelease -PbuildNumber="$BUILD_NUMBER" -Dorg.gradle.jvmargs="-Xmx8g"; then
+    if ./gradlew :app:android:assembleRelease; then
         APK_SRC=$(find . -name "*release.apk" | head -n 1)
 
         if [[ -f "$APK_SRC" ]]; then
@@ -101,6 +101,7 @@ build_ios() {
     fi
 
     export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+    # shellcheck disable=SC2155
     [[ ! -d "$DEVELOPER_DIR" ]] && export DEVELOPER_DIR=$(xcode-select -p)
 
     IOS_PROJECT_DIR="app/ios"
@@ -150,6 +151,28 @@ build_ios() {
     fi
 }
 
+# --- Подготовка описания ---
+prepare_description() {
+    DESC_FILE=".release_desc.md"
+    echo -e "<!--\nEnter the release description. Leave empty for no description.\n-->" > "$DESC_FILE"
+
+    # Открываем nano. Пользователь должен отредактировать файл.
+    nano "$DESC_FILE"
+
+    # Удаляем комментарии <!-- ... --> и лишние пробелы/пустые строки
+    # Используем perl для многострочного удаления комментариев
+    CLEAN_DESC=$(perl -0777 -pe 's/<!--.*?-->//gs' "$DESC_FILE" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+    rm -f "$DESC_FILE"
+
+    if [[ -n "$CLEAN_DESC" ]]; then
+        echo "$CLEAN_DESC" > .final_notes.md
+        NOTES_ARG=("-F" "./.final_notes.md")
+    else
+        NOTES_ARG=("--generate-notes")
+    fi
+}
+
 # --- Публикация в GitHub ---
 publish_github() {
     step "GitHub Deployment"
@@ -161,36 +184,45 @@ publish_github() {
     substep "Pushing tags..."
     git push --tags > /dev/null 2>&1 || true
 
-    # Определяем флаг пререлиза на основе тега ИЛИ аргумента --pre
     prerelease_flag=""
     if [[ "$IS_PRERELEASE" == true ]] || [[ "$TAG" == v*-pre* ]]; then
         prerelease_flag="--prerelease"
     fi
 
-    # Собираем существующие файлы в массив
     ASSETS=()
     [[ -f "$ANDROID_ASSET" ]] && ASSETS+=("$ANDROID_ASSET")
     [[ -f "$IOS_ASSET" ]] && ASSETS+=("$IOS_ASSET")
 
     if [ ${#ASSETS[@]} -eq 0 ]; then
-        error "No assets found to upload. Check build logs."
+        error "No assets found to upload."
         return
     fi
 
-    # Проверяем наличие релиза и создаем/обновляем
+    # Подготавливаем описание перед созданием
+    prepare_description
+
     if gh release view "$TAG" >/dev/null 2>&1; then
         substep "Updating existing release ${YELLOW}$TAG${NC}..."
         [[ -n "$prerelease_flag" ]] && gh release edit "$TAG" "$prerelease_flag"
+
+        # Если есть кастомные ноты, обновляем их
+        if [[ -f .final_notes.md ]]; then
+            gh release edit "$TAG" -F ./.final_notes.md
+        fi
+
         gh release upload "$TAG" "${ASSETS[@]}" --clobber
     else
         substep "Creating new release ${YELLOW}$TAG${NC}..."
+        # gh release create принимает либо --generate-notes, либо --notes-file
         gh release create "$TAG" \
-            --generate-notes \
+            "${NOTES_ARG[@]}" \
             --notes-start-tag "${PREVTAG:-$TAG}" \
             $prerelease_flag \
             "${ASSETS[@]}"
     fi
-    success "Assets uploaded to GitHub Release"
+
+    rm -f .final_notes.md
+    success "Assets and notes uploaded to GitHub Release"
 }
 
 # --- Основной процесс ---
