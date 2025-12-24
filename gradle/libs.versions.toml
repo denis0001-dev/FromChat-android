@@ -17,7 +17,8 @@ gson = "2.13.2"
 kotlinxIoBytestring = "0.8.2"
 kotlinxCoroutinesCore = "1.10.2"
 kotlinxIoCore = "0.8.2"
-kotlinxSerializationJson = "1.9.0"
+serialization = "2.3.0"
+serialization-json = "1.9.0"
 material = "1.13.0"
 activityKtx = "1.12.2"
 navigationCompose = "2.9.1"
@@ -45,7 +46,7 @@ kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", versio
 biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIoCore" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
@@ -76,3 +77,4 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version = "2.3.0" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serialization" }
