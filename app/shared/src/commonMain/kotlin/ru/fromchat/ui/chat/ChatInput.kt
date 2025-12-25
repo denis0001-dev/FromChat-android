@@ -167,110 +167,106 @@ fun ChatInput(
         }
     }
 
-    Column(
-        Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Transparent)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
     ) {
-        // Input field with blur
-        Box(
+        val shape = RoundedCornerShape(24.dp)
+
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Transparent)
-                .padding(horizontal = 8.dp, vertical = 8.dp)
+                .border(
+                    Dp.Hairline,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    shape
+                )
+                .clip(shape)
+                .hazeEffect(
+                    state = hazeState,
+                    style = HazeMaterials.thin()
+                )
         ) {
-            val shape = RoundedCornerShape(24.dp)
+            AnimatedPreviewBar(replyTo) { replyTo ->
+                PreviewBar(
+                    icon = Icons.AutoMirrored.Filled.Reply,
+                    title = "Replying to ${replyTo.username}",
+                    subtitle = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
+                    onClose = { onClearReply() }
+                )
+            }
 
-            Column(
+            AnimatedPreviewBar(editingMessage) { message ->
+                PreviewBar(
+                    icon = Icons.Filled.Edit,
+                    title = "Editing message",
+                    subtitle = message.content.take(50) + if (message.content.length > 50) "..." else "",
+                    onClose = { onClearEdit() }
+                )
+            }
+
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(
-                        Dp.Hairline,
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        shape
+                    .animateContentSize(),
+                placeholder = {
+                    Text(
+                        text = stringResource(Res.string.message_placeholder),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                    .clip(shape)
-                    .hazeEffect(
-                        state = hazeState,
-                        style = HazeMaterials.thin()
-                    )
-            ) {
-                AnimatedPreviewBar(replyTo) { replyTo ->
-                    PreviewBar(
-                        icon = Icons.AutoMirrored.Filled.Reply,
-                        title = "Replying to ${replyTo.username}",
-                        subtitle = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
-                        onClose = { onClearReply() }
-                    )
-                }
+                },
+                shape = shape,
+                maxLines = 5,
+                singleLine = false,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    errorBorderColor = Color.Transparent,
+                    disabledBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                ),
+                trailingIcon = {
+                    val offset = with(LocalDensity.current) { 20.dp.toPx().toInt() }
 
-                AnimatedPreviewBar(editingMessage) { message ->
-                    PreviewBar(
-                        icon = Icons.Filled.Edit,
-                        title = "Editing message",
-                        subtitle = message.content.take(50) + if (message.content.length > 50) "..." else "",
-                        onClose = { onClearEdit() }
-                    )
-                }
-
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize(),
-                    placeholder = {
-                        Text(
-                            text = stringResource(Res.string.message_placeholder),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    AnimatedVisibility(
+                        visible = text.isNotBlank(),
+                        enter = slideInHorizontally(
+                            initialOffsetX = { it + offset },
+                            animationSpec = tween(durationMillis = 300)
+                        ),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { it + offset },
+                            animationSpec = tween(durationMillis = 200)
                         )
-                    },
-                    shape = shape,
-                    maxLines = 5,
-                    singleLine = false,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        errorContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        errorBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    trailingIcon = {
-                        val offset = with(LocalDensity.current) { 20.dp.toPx().toInt() }
-
-                        AnimatedVisibility(
-                            visible = text.isNotBlank(),
-                            enter = slideInHorizontally(
-                                initialOffsetX = { it + offset },
-                                animationSpec = tween(durationMillis = 300)
-                            ),
-                            exit = slideOutHorizontally(
-                                targetOffsetX = { it + offset },
-                                animationSpec = tween(durationMillis = 200)
-                            )
-                        ) {
-                            Box(Modifier.padding(end = 5.dp)) {
-                                FilledIconButton(
-                                    onClick = {
-                                        onSend(text.trim())
-                                        onTextChange("")
-                                        typingHandler.stopTyping()
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "Send",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                    ) {
+                        Box(Modifier.padding(end = 5.dp)) {
+                            FilledIconButton(
+                                onClick = {
+                                    onSend(text.trim())
+                                    onTextChange("")
+                                    typingHandler.stopTyping()
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
