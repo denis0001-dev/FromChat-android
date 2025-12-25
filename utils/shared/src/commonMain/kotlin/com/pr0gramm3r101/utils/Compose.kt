@@ -1,5 +1,6 @@
 package com.pr0gramm3r101.utils
 
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 
 /**
@@ -21,18 +22,22 @@ fun NavController.navigateAndWipeBackStack(route: String, launchSingleTop: Boole
     val currentRoute = currentBackStackEntry?.destination?.route
 
     // Navigate to the new route, removing the current screen as well
-    if (currentRoute != null && currentRoute != route) {
-        navigate(route) {
+    navigate(route) {
+        if (currentRoute != null && currentRoute != route) {
             popUpTo(currentRoute) {
                 inclusive = true
             }
-            this.launchSingleTop = launchSingleTop
         }
-    } else {
-        // Fallback: just navigate if current route is same or null
-        navigate(route) {
-            this.launchSingleTop = launchSingleTop
-        }
+        this.launchSingleTop = launchSingleTop
     }
 }
 
+inline fun Modifier.conditional(
+    condition: Boolean,
+    `else`: Modifier.(Modifier) -> Modifier = { Modifier },
+    `if`: Modifier.(Modifier) -> Modifier
+) = if (condition) {
+    this + `if`(this)
+} else {
+    this + `else`(this)
+}

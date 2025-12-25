@@ -27,6 +27,27 @@ fun getMessageGradient(isDark: Boolean) = Brush.linearGradient(
 )
 
 /**
+ * Get gradient brush for own messages
+ */
+fun getReplyMessageGradient(isDark: Boolean) = Brush.linearGradient(
+    colors = if (isDark) {
+        listOf(
+            Color(0xFF5f11a6),
+            Color(0xFF1418da),
+            Color(0xFF1b3d73)
+        )
+    } else {
+        listOf(
+            Color(0xFF7836ee),
+            Color(0xFF2034f3),
+            Color(0xFF076eed)
+        )
+    },
+    start = Offset(0f, 0f),
+    end = Offset(1000f, 1000f)
+)
+
+/**
  * Generate a consistent gradient from a name for avatar fallback
  */
 fun generateGradientFromName(name: String): Brush {

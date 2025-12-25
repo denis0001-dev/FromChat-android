@@ -12,9 +12,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -27,12 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pr0gramm3r101.utils.conditional
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import ru.fromchat.api.Message
@@ -92,18 +95,11 @@ fun MessageItem(
                     .widthIn(max = 280.dp),
                 horizontalAlignment = if (isAuthor) Alignment.End else Alignment.Start
             ) {
-                // Reply preview
-                message.reply_to?.let { replyTo ->
-                    ReplyPreview(
-                        replyTo = replyTo,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-
                 // Message bubble
                 val isDark = isSystemInDarkTheme()
                 Box(
                     modifier = Modifier
+                        .width(IntrinsicSize.Min)
                         .clip(
                             RoundedCornerShape(
                                 topStart = 20.dp,
@@ -112,35 +108,27 @@ fun MessageItem(
                                 bottomEnd = if (isAuthor) 8.dp else 20.dp
                             )
                         )
-                        .then(
-                            if (isAuthor) {
-                                Modifier.shadow(
-                                    elevation = 8.dp,
-                                    shape = RoundedCornerShape(
-                                        topStart = 20.dp,
-                                        topEnd = 20.dp,
-                                        bottomStart = 20.dp,
-                                        bottomEnd = 8.dp
-                                    ),
-                                    spotColor = if (isDark) Color(0x66000000) else Color(0x33000000)
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .background(
-                            brush = if (isAuthor) {
-                                getMessageGradient(isDark)
-                            } else {
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.surfaceContainerHighest,
-                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                        .conditional(
+                            isAuthor,
+                            `if` = {
+                                it
+                                    .shadow(
+                                        elevation = 8.dp,
+                                        shape = RoundedCornerShape(
+                                            topStart = 20.dp,
+                                            topEnd = 20.dp,
+                                            bottomStart = 20.dp,
+                                            bottomEnd = 8.dp
+                                        ),
+                                        spotColor = if (isDark) Color(0x66000000) else Color(0x33000000)
                                     )
-                                )
+                                    .background(getMessageGradient(isDark))
+                            },
+                            `else` = {
+                                background(MaterialTheme.colorScheme.surfaceContainerHighest)
                             }
                         )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(top = 6.dp)
                 ) {
                     Column {
                         // Username inside bubble (for received messages)
@@ -150,8 +138,57 @@ fun MessageItem(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp)
                             )
+                        }
+
+                        // Reply preview
+                        message.reply_to?.let { replyTo ->
+                            Box(
+                                Modifier.padding(bottom = 4.dp, start = 6.dp, end = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min)
+                                        .conditional(
+                                            isAuthor,
+                                            `if` = {
+                                                background(getReplyMessageGradient(isDark))
+                                            },
+                                            `else` = {
+                                                background(MaterialTheme.colorScheme.surfaceVariant)
+                                            }
+                                        )
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .background(MaterialTheme.colorScheme.primary)
+                                            .width(3.dp)
+                                            .fillMaxHeight()
+                                    )
+
+                                    Column(
+                                        Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = replyTo.username,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 11.sp
+                                        )
+                                        Text(
+                                            text = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 12.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         // Message content
@@ -162,12 +199,14 @@ fun MessageItem(
                                 Color.White
                             } else {
                                 MaterialTheme.colorScheme.onSurface
-                            }
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp)
                         )
 
                         // Timestamp and edited indicator
                         Row(
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier
+                                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -202,45 +241,17 @@ fun MessageItem(
     }
 }
 
-@Composable
-private fun ReplyPreview(
-    replyTo: Message,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-    ) {
-        Column {
-            Text(
-                text = replyTo.username,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 11.sp
-            )
-            Text(
-                text = replyTo.content.take(50) + if (replyTo.content.length > 50) "..." else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
-                maxLines = 1
-            )
-        }
-    }
-}
-
 @ExperimentalTime
 private fun formatTime(timestamp: String): String {
     return try {
-        val instant = Instant.parse(timestamp)
-        val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        val hour = localDateTime.hour.toString().padStart(2, '0')
-        val minute = localDateTime.minute.toString().padStart(2, '0')
-        "$hour:$minute"
-    } catch (e: Exception) {
+        Instant.parse(timestamp).toLocalDateTime(TimeZone.currentSystemDefault()).let {
+            "${
+                it.hour.toString().padStart(2, '0')
+            }:${
+                it.minute.toString().padStart(2, '0')
+            }"
+        }
+    } catch (_: Exception) {
         // Fallback: try parsing without timezone if it fails
         try {
             val parts = timestamp.split("T")
@@ -254,9 +265,8 @@ private fun formatTime(timestamp: String): String {
             } else {
                 ""
             }
-        } catch (e2: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
 }
-
