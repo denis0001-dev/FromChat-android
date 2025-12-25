@@ -30,4 +30,6 @@ interface Settings {
     suspend fun getStringList(key: String, default: List<String> = emptyList()): List<String>
 
     suspend fun remove(key: String)
+
+    suspend fun contains(key: String): Boolean
 } 

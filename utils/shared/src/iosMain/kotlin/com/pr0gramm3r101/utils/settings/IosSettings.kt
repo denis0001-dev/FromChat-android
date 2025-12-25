@@ -1,5 +1,7 @@
 package com.pr0gramm3r101.utils.settings
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import platform.Foundation.NSUserDefaults
 
 // TODO fix
@@ -42,4 +44,8 @@ class IosSettings : Settings {
     }
 
     override suspend fun remove(key: String) = defaults.removeObjectForKey(key)
+
+    override suspend fun contains(key: String): Boolean = withContext(Dispatchers.Default) {
+        defaults.objectForKey(key) != null
+    }
 } 

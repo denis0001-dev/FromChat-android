@@ -1,10 +1,10 @@
 package ru.fromchat.core.config
 
-import com.pr0gramm3r101.utils.storage.ServerConfigData
-import com.pr0gramm3r101.utils.storage.ServerConfigStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import ru.fromchat.core.ServerConfigData
+import ru.fromchat.core.Settings
 
 /**
  * Application configuration
@@ -19,18 +19,15 @@ object Config {
     /**
      * Initialize configuration by loading from storage
      */
-    suspend fun initialize() {
-        _serverConfig.value = ServerConfigStorage.getConfig()
-
-        // Set default values and prevent corruption
-        ServerConfigStorage.getConfig()
+    fun initialize() {
+        _serverConfig.value = Settings.serverConfig
     }
     
     /**
      * Update server configuration
      */
-    suspend fun updateServerConfig(config: ServerConfigData) {
-        ServerConfigStorage.saveConfig(config)
+    fun updateServerConfig(config: ServerConfigData) {
+        Settings.serverConfig = config
         _serverConfig.value = config
     }
     
@@ -45,9 +42,4 @@ object Config {
      */
     val webSocketUrl
         get() = "${if (config.httpsEnabled) "wss" else "ws"}://${config.serverUrl}/api/chat/ws"
-    
-    /**
-     * Checks if server configuration exists
-     */
-    suspend fun hasServerConfig() = ServerConfigStorage.hasConfiguration()
 }

@@ -720,6 +720,7 @@ val ActivityInfo.launchIntent get() = Intent().apply {
     flags = FLAG_ACTIVITY_NEW_TASK
 }
 
+@SuppressLint("QueryPermissionsNeeded")
 @RequiresPermission(Manifest.permission.QUERY_ALL_PACKAGES)
 fun ActivityInfo.isLauncher(context: Context): Boolean {
     with (context) {

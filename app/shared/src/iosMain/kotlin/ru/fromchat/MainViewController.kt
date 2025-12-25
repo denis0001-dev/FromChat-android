@@ -1,7 +1,8 @@
 package ru.fromchat
 
-import ru.fromchat.ui.App
 import androidx.compose.ui.window.ComposeUIViewController
+import ru.fromchat.ui.App
 
+@Suppress("unused")
 fun MainViewController() = ComposeUIViewController { App() }
 

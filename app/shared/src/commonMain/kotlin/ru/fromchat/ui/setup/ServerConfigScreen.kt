@@ -40,13 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import com.pr0gramm3r101.utils.navigateAndWipeBackStack
-import com.pr0gramm3r101.utils.storage.ServerConfigData
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ru.fromchat.Res
 import ru.fromchat.api.ApiClient
 import ru.fromchat.api.WebSocketManager
 import ru.fromchat.back
+import ru.fromchat.core.ServerConfigData
 import ru.fromchat.core.config.Config
 import ru.fromchat.https_enabled
 import ru.fromchat.save_continue

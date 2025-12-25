@@ -307,12 +307,13 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(), // Fill the entire space of the Box
-                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom)
+                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom),
+                    reverseLayout = true
                 ) {
-                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
+                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
 
                     items(
-                        items = panelState.messages,
+                        items = panelState.messages.reversed(),
                         key = { it.id }
                     ) { message ->
                         val isAuthor = message.user_id == currentUserId
@@ -349,7 +350,7 @@ fun ChatScreen(
                         }
                     }
 
-                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
+                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
                 }
             }
 

@@ -93,4 +93,15 @@ class AndroidSettings(): Settings {
             preferences.remove(stringSetPreferencesKey(key))
         }
     }
+
+    override suspend fun contains(key: String): Boolean {
+        return dataStore.data.map { preferences ->
+            preferences.contains(stringPreferencesKey(key)) ||
+                    preferences.contains(intPreferencesKey(key)) ||
+                    preferences.contains(longPreferencesKey(key)) ||
+                    preferences.contains(floatPreferencesKey(key)) ||
+                    preferences.contains(booleanPreferencesKey(key)) ||
+                    preferences.contains(stringSetPreferencesKey(key))
+        }.first()
+    }
 }

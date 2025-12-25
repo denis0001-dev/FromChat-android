@@ -60,9 +60,7 @@ data class Message(
     val reply_to: Message? = null,
     val client_message_id: String? = null,
     val reactions: List<ReactionData>? = null
-) {
-    val utcTimestamp = "${timestamp}Z"
-}
+)
 
 @Serializable
 data class SendMessageRequest(
