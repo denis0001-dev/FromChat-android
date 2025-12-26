@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# --- Настройка и окружение ---
+# --- Setup ---
 set -e
 cd "$(dirname "$0")"
 
-# --- Обработка аргументов ---
+# --- Arguments ---
 IS_PRERELEASE=false
 
 show_help() {
@@ -33,17 +33,17 @@ for arg in "$@"; do
     esac
 done
 
-# --- Конфигурация цветов и оформления ---
+# --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 BOLD='\033[1m'
 
-# --- Функции логирования ---
+# --- Logging ---
 info() { echo -e "${BLUE}ℹ${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warning() { echo -e "${YELLOW}⚠${NC} $1"; }
@@ -53,46 +53,99 @@ substep() { echo -e "  ${GREEN}•${NC} $1"; }
 
 echo -e "${MAGENTA}${BOLD}🚀 FromChat KMP Release Pipeline${NC}"
 
-# --- Настройка памяти для предотвращения OutOfMemory ---
-export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx8g -Dkotlin.daemon.jvm.options=-Xmx8g"
+# --- 1. Version Input & Validation ---
+step "Configuration"
+echo -en "  ${GREEN}•${NC} Release version: "
+read -r USER_INPUT
 
-# --- Переменные Git / Версии ---
-step "Metadata collection"
-TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
-# shellcheck disable=SC2207
-TAGS=($(git --no-pager tag --sort -v:refname | xargs))
-PREVTAG=${TAGS[1]:-$TAG}
-
-substep "Current tag: ${YELLOW}$TAG${NC}"
-substep "Previous tag: ${YELLOW}$PREVTAG${NC}"
-
+# Regex for x, x.y, or x.y.z
+VERSION_REGEX="^[0-9]+(\.[0-9]+)*$"
 # shellcheck disable=SC2001
-BUILD_NUMBER=$(echo "$TAG" | sed 's/[^0-9]//g')
+CLEAN_VERSION=$(echo "$USER_INPUT" | LC_ALL=C sed 's/^v//')
+
+if [[ ! $CLEAN_VERSION =~ $VERSION_REGEX ]]; then
+    error "Error: Version must be in format x, x.y, or x.y.z (e.g. 1.2.3)"
+    exit 1
+fi
+
+TAG="v$CLEAN_VERSION"
+VERSION_STR="$CLEAN_VERSION"
+# shellcheck disable=SC2001
+BUILD_NUMBER=$(echo "$VERSION_STR" | LC_ALL=C sed 's/[^0-9]//g')
 [[ -z "$BUILD_NUMBER" ]] && BUILD_NUMBER=1
 
-# --- Сборка Android ---
+# Check if tag exists
+RECREATE_TAG=false
+if git rev-parse "$TAG" >/dev/null 2>&1; then
+    echo -n "  " && warning "Tag $TAG already exists."
+    echo -en "  ${GREEN}•${NC} Delete it and move to the new commit? (y/N): "
+    read -r CONFIRM
+    if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+        RECREATE_TAG=true
+    else
+        exit 0
+    fi
+fi
+
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD)
+STASH_MARKER="release_stash_$(date +%s)"
+HAS_STASHED=false
+
+restore_git_state() {
+    if [ "$HAS_STASHED" = true ]; then
+        STASH_ID=$(git stash list | grep "$STASH_MARKER" | head -n 1 | cut -d':' -f1)
+        if [[ -n "$STASH_ID" ]]; then
+            git stash pop "$STASH_ID" > /dev/null 2>&1 || true
+        fi
+        HAS_STASHED=false
+    fi
+}
+
+trap restore_git_state EXIT INT TERM
+
+# --- 2. Git Cleanup & Safety ---
+if [[ -n $(git status --short) ]]; then
+    git stash push --include-untracked -m "$STASH_MARKER" > /dev/null 2>&1
+    HAS_STASHED=true
+fi
+
+git fetch origin "$CURRENT_BRANCH" > /dev/null 2>&1
+LOCAL_HASH=$(git rev-parse HEAD)
+REMOTE_HASH=$(git rev-parse "origin/$CURRENT_BRANCH")
+
+if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
+    if ! git merge-base --is-ancestor "$REMOTE_HASH" "$LOCAL_HASH"; then
+        error "Remote branch has commits you don't have. Please pull first."
+        exit 1
+    fi
+fi
+
+# --- Constants ---
+BUILD_DIR="$(pwd)/build"
+DESC_FILE="$BUILD_DIR/.release_desc.md"
+RELEASES_DIR="$(pwd)/releases"
+mkdir -p "$RELEASES_DIR"
+export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx8g -Dkotlin.daemon.jvm.options=-Xmx8g"
+
+# --- 3. Build Functions ---
+
 build_android() {
     step "Building Android Release"
     if ./gradlew :app:android:assembleRelease; then
         APK_SRC=$(find . -name "*release.apk" | head -n 1)
-
         if [[ -f "$APK_SRC" ]]; then
-            mkdir -p releases
             DISPLAY_NAME="FromChat-$TAG-android.apk"
-            cp "$APK_SRC" "releases/$DISPLAY_NAME"
-            ANDROID_ASSET="releases/$DISPLAY_NAME"
+            cp "$APK_SRC" "$RELEASES_DIR/$DISPLAY_NAME"
+            ANDROID_ASSET="$RELEASES_DIR/$DISPLAY_NAME"
             success "Android APK ready: ${CYAN}$DISPLAY_NAME${NC}"
         else
-            error "Android APK not found after build"
-            exit 1
+            error "APK not found"; exit 1
         fi
     else
-        error "Android build failed"
-        exit 1
+        error "Android build failed"; exit 1
     fi
 }
 
-# --- Сборка iOS ---
 build_ios() {
     step "Building iOS Release"
     if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -106,129 +159,143 @@ build_ios() {
 
     IOS_PROJECT_DIR="app/ios"
     [[ ! -d "$IOS_PROJECT_DIR" ]] && IOS_PROJECT_DIR="iosApp"
-
-    substep "Setting iOS version to $BUILD_NUMBER..."
     PLIST_PATH=$(find "$IOS_PROJECT_DIR" -name "Info.plist" | head -n 1)
+
     if [[ -f "$PLIST_PATH" ]]; then
         /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST_PATH" || true
-        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${TAG#v}" "$PLIST_PATH" || true
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_STR" "$PLIST_PATH" || true
     fi
 
-    substep "Xcode Archiving (Unsigned)..."
-
-    mkdir -p build/ios
-
-    if xcodebuild -project "$IOS_PROJECT_DIR/iosApp.xcodeproj" \
+    substep "Xcode Archiving..."
+    rm -rf "$BUILD_DIR/ios" && mkdir -p "$BUILD_DIR/ios"
+    if ! xcodebuild -project "$IOS_PROJECT_DIR/iosApp.xcodeproj" \
         -scheme iOS \
         -configuration Release \
         -sdk iphoneos \
         -destination 'generic/platform=iOS' \
-        -derivedDataPath build/ios \
+        -derivedDataPath "$BUILD_DIR/ios" \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGNING_ENTITLEMENTS="" \
-        build > build/ios/build.log 2>&1; then
-
-        success "Xcode build successful."
-    else
-        error "Xcode build failed. Check build/ios/build.log"
-        exit 1
+        clean build > "$BUILD_DIR/ios/build.log" 2>&1
+    then
+        error "iOS build failed. Check: $BUILD_DIR/ios/build.log"; exit 1
     fi
 
-    substep "Packaging IPA for TrollStore..."
-    mkdir -p build/ios/Payload
-    APP_PATH=$(find build/ios -name "*.app" -type d | head -n 1)
-    if [[ -n "$APP_PATH" ]]; then
-        cp -r "$APP_PATH" build/ios/Payload/
+    substep "Packaging to ${CYAN}.ipa${NC}..."
+    APP_BUNDLE_PATH=$(find "$BUILD_DIR/ios/Build/Products/Release-iphoneos" -name "*.app" -type d | head -n 1)
+
+    if [[ -n "$APP_BUNDLE_PATH" ]]; then
         IPA_NAME="FromChat-$TAG-ios-unsigned.ipa"
-        zip -r "releases/$IPA_NAME" build/ios/Payload > /dev/null
-        rm -rf build/ios/Payload
-        IOS_ASSET="releases/$IPA_NAME"
-        success "iOS IPA ready: ${CYAN}$IPA_NAME${NC}"
+        IPA_PATH="$RELEASES_DIR/$IPA_NAME"
+
+        # Create Payload structure inside build dir
+        PAYLOAD_STAGE="$BUILD_DIR/ios/ipa_stage"
+        rm -rf "$PAYLOAD_STAGE" && mkdir -p "$PAYLOAD_STAGE/Payload"
+
+        # Use cp -R to dereference symlinks and copy actual files into the stage
+        # This is safe because it's only the final bundle
+        cp -R "$APP_BUNDLE_PATH" "$PAYLOAD_STAGE/Payload/"
+
+        # Zip from the stage directory
+        (cd "$PAYLOAD_STAGE" && zip -r "$IPA_PATH" Payload > /dev/null 2>&1)
+
+        # Cleanup stage
+        rm -rf "$PAYLOAD_STAGE"
+
+        if [[ -f "$IPA_PATH" ]]; then
+            IOS_ASSET="$IPA_PATH"
+            success "iOS IPA ready: ${CYAN}$IPA_NAME${NC}"
+        else
+            error "IPA generation failed (file not found in releases)"
+            exit 1
+        fi
     else
-        error "Could not find .app bundle"
-        exit 1
+        error "Could not find .app bundle"; exit 1
     fi
+
+    git checkout -- "$PLIST_PATH" > /dev/null 2>&1 || true
 }
 
-# --- Подготовка описания ---
+build_android
+build_ios
+
+# --- 4. Git Finalizing ---
+
+IOS_PROJECT_DIR="app/ios"
+[[ ! -d "$IOS_PROJECT_DIR" ]] && IOS_PROJECT_DIR="iosApp"
+PLIST_PATH=$(find "$IOS_PROJECT_DIR" -name "Info.plist" | head -n 1)
+
+if [[ -f "$PLIST_PATH" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST_PATH" || true
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_STR" "$PLIST_PATH" || true
+    git add "$PLIST_PATH" > /dev/null 2>&1
+
+    if ! git diff --cached --quiet; then
+        if git commit --amend --no-edit > /dev/null 2>&1; then
+            substep "Info.plist updated (amend)."
+        else
+            error "Failed to amend commit."
+        fi
+    fi
+fi
+
+if [[ "$RECREATE_TAG" == true ]]; then
+    git tag -d "$TAG" > /dev/null 2>&1 || true
+    git push origin :refs/tags/"$TAG" > /dev/null 2>&1 || true
+fi
+
+if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+    git tag -a "$TAG" -m "Release $TAG" > /dev/null 2>&1
+fi
+
+git push origin "$CURRENT_BRANCH" --force-with-lease --tags > /dev/null 2>&1
+
+# --- 5. GitHub Release ---
+
 prepare_description() {
-    DESC_FILE=".release_desc.md"
-    echo -e "<!--\nEnter the release description. Leave empty for no description.\n-->" > "$DESC_FILE"
-
-    # Открываем nano. Пользователь должен отредактировать файл.
+    echo -e "<!-- Release Description -->" > "$DESC_FILE"
     nano "$DESC_FILE"
-
-    # Удаляем комментарии <!-- ... --> и лишние пробелы/пустые строки
-    # Используем perl для многострочного удаления комментариев
-    CLEAN_DESC=$(perl -0777 -pe 's/<!--.*?-->//gs' "$DESC_FILE" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-
+    CLEAN_DESC=$(LC_ALL=C perl -0777 -pe 's/<!--.*?-->//gs' "$DESC_FILE" | LC_ALL=C sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
     rm -f "$DESC_FILE"
-
     if [[ -n "$CLEAN_DESC" ]]; then
-        echo "$CLEAN_DESC" > .final_notes.md
-        NOTES_ARG=("-F" "./.final_notes.md")
+        echo "$CLEAN_DESC" > "$DESC_FILE"
+        NOTES_ARG=("-F" "$DESC_FILE")
     else
         NOTES_ARG=("--generate-notes")
     fi
 }
 
-# --- Публикация в GitHub ---
 publish_github() {
-    step "GitHub Deployment"
-    if ! command -v gh &> /dev/null; then
-        warning "GitHub CLI (gh) not found. Skipping upload."
-        return
-    fi
-
-    substep "Pushing tags..."
-    git push --tags > /dev/null 2>&1 || true
-
-    prerelease_flag=""
-    if [[ "$IS_PRERELEASE" == true ]] || [[ "$TAG" == v*-pre* ]]; then
-        prerelease_flag="--prerelease"
-    fi
+    step "GitHub Release"
+    if ! command -v gh &> /dev/null; then return; fi
 
     ASSETS=()
     [[ -f "$ANDROID_ASSET" ]] && ASSETS+=("$ANDROID_ASSET")
     [[ -f "$IOS_ASSET" ]] && ASSETS+=("$IOS_ASSET")
+    [ ${#ASSETS[@]} -eq 0 ] && return
 
-    if [ ${#ASSETS[@]} -eq 0 ]; then
-        error "No assets found to upload."
-        return
-    fi
-
-    # Подготавливаем описание перед созданием
     prepare_description
 
     if gh release view "$TAG" >/dev/null 2>&1; then
-        substep "Updating existing release ${YELLOW}$TAG${NC}..."
-        [[ -n "$prerelease_flag" ]] && gh release edit "$TAG" "$prerelease_flag"
-
-        # Если есть кастомные ноты, обновляем их
-        if [[ -f .final_notes.md ]]; then
-            gh release edit "$TAG" -F ./.final_notes.md
-        fi
-
-        gh release upload "$TAG" "${ASSETS[@]}" --clobber
+        substep "Editing existing release..."
+        EDIT_ARGS=("--draft=false")
+        [[ "$IS_PRERELEASE" == true ]] && EDIT_ARGS+=("--prerelease") || EDIT_ARGS+=("--prerelease=false")
+        [[ -f "$DESC_FILE" ]] && EDIT_ARGS+=("-F" "$DESC_FILE")
+        gh release edit "$TAG" "${EDIT_ARGS[@]}" 1> /dev/null
+        substep "Uploading files..."
+        gh release upload "$TAG" "${ASSETS[@]}" --clobber 1> /dev/null
     else
-        substep "Creating new release ${YELLOW}$TAG${NC}..."
-        # gh release create принимает либо --generate-notes, либо --notes-file
-        gh release create "$TAG" \
-            "${NOTES_ARG[@]}" \
-            --notes-start-tag "${PREVTAG:-$TAG}" \
-            $prerelease_flag \
-            "${ASSETS[@]}"
+        substep "Creating the release..."
+        PR_FLAG=""
+        [[ "$IS_PRERELEASE" == true ]] && PR_FLAG="--prerelease"
+        gh release create "$TAG" "${NOTES_ARG[@]}" $PR_FLAG --draft=false "${ASSETS[@]}" 1> /dev/null
     fi
-
-    rm -f .final_notes.md
-    success "Assets and notes uploaded to GitHub Release"
+    rm -f "$DESC_FILE"
+    success "Success!"
 }
 
-# --- Основной процесс ---
-mkdir -p releases
-build_android
-build_ios
 publish_github
 
+restore_git_state
+trap - EXIT INT TERM
 echo -e "\n${GREEN}${BOLD}✨ Release $TAG completed successfully!${NC}"
