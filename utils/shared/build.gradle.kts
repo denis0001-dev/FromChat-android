@@ -40,6 +40,7 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(libs.jetbrains.kotlinx.coroutines.core)
             implementation(libs.navigation.compose)
+            implementation(libs.kotlinx.serialization.json)
         }
 
         androidMain.dependencies {
@@ -49,10 +50,19 @@ kotlin {
             implementation(libs.biometric)
             implementation(libs.androidx.appcompat)
             implementation(libs.material)
+            implementation(libs.security.crypto)
         }
 
         iosMain.dependencies {
-            // nothing
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.serialization.kotlinx.json)
+            implementation(libs.kotlinx.datetime)
+            // Multiplatform settings for iOS Keychain support
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.coroutines)
+            implementation(libs.multiplatform.settings.serialization)
         }
     }
 }

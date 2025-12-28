@@ -152,9 +152,7 @@ fun ServerConfigScreen() {
                         
                         // Ensure we're logged out when server config changes
                         runCatching {
-                            ApiClient.token?.let { token ->
-                                ApiClient.logout(token)
-                            }
+                            ApiClient.logout()
                         }
                         
                         // Clear API client state

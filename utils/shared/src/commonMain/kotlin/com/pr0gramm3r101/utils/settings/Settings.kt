@@ -2,6 +2,10 @@
 
 package com.pr0gramm3r101.utils.settings
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+
 interface Settings {
     companion object {
         inline fun get() = settings
@@ -25,9 +29,24 @@ interface Settings {
     
     suspend fun putStringSet(key: String, value: Set<String>)
     suspend fun getStringSet(key: String, default: Set<String> = emptySet()): Set<String>
-    
-    suspend fun putStringList(key: String, value: List<String>)
-    suspend fun getStringList(key: String, default: List<String> = emptyList()): List<String>
+
+    suspend fun putStringList(key: String, value: List<String>) = withContext(Dispatchers.Default) {
+        putString(key, Json.encodeToString(value))
+    }
+
+    suspend fun getStringList(key: String, default: List<String> = emptyList()) = withContext(Dispatchers.Default) {
+        try {
+            getString(key, "").let {
+                if (it.isEmpty()) {
+                    default
+                } else {
+                    Json.decodeFromString<List<String>>(it)
+                }
+            }
+        } catch (_: Exception) {
+            default
+        }
+    }
 
     suspend fun remove(key: String)
 

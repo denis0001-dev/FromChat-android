@@ -17,12 +17,14 @@ gson = "2.13.2"
 kotlinxIoBytestring = "0.8.2"
 kotlinxCoroutinesCore = "1.10.2"
 kotlinxIoCore = "0.8.2"
+multiplatformSettings = "1.3.0"
 serialization = "2.3.0"
 serialization-json = "1.9.0"
 material = "1.13.0"
 activityKtx = "1.12.2"
 navigationCompose = "2.9.1"
 datastore = "1.2.0"
+security-crypto = "1.1.0-alpha06"
 ktor = "3.3.3"
 slf4j = "1.7.36"
 kotlinxDatetime = "0.7.1"
@@ -49,9 +51,13 @@ kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.re
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
+multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatformSettings" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastore" }
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }

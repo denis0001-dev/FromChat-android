@@ -13,8 +13,11 @@ object Config {
     private val _serverConfig = MutableStateFlow<ServerConfigData?>(null)
     val serverConfig: StateFlow<ServerConfigData?> = _serverConfig.asStateFlow()
 
-    private val config
-        get() = _serverConfig.value ?: throw IllegalStateException("Server configuration not initialized")
+    private val config: ServerConfigData get() {
+        if (_serverConfig.value == null) initialize()
+
+        return (_serverConfig.value ?: IllegalStateException("Server configuration not initialized")) as ServerConfigData
+    }
     
     /**
      * Initialize configuration by loading from storage

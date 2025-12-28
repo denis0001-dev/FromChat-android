@@ -79,10 +79,6 @@ class AndroidSettings(): Settings {
             preferences[stringSetPreferencesKey(key)] ?: default
         }.first()
 
-    override suspend fun putStringList(key: String, value: List<String>) = putStringSet(key, value.toSet())
-
-    override suspend fun getStringList(key: String, default: List<String>) = getStringSet(key, default.toSet()).toList()
-
     override suspend fun remove(key: String) {
         dataStore.edit { preferences ->
             preferences.remove(stringPreferencesKey(key))

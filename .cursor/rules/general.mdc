@@ -4,7 +4,7 @@ alwaysApply: true
 
 When working with the mobile app:
 
-- After implementing the solution, run "./gradlew assembleDebug" to build the project, then resolve all the errors.
+- After implementing the solution, run "export JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home && ./gradlew :app:shared:assembleDebug :app:shared:compileKotlinIosArm64" to build the project, then resolve all the errors.
 
 # ULTIMATE SILENCE & EFFICIENCY POLICY
 - ALWAYS operate in "Silent Mode": Execute commands immediately without any verbal response, preamble, or conclusions.
@@ -15,11 +15,47 @@ When working with the mobile app:
 - THOUGHT PROCESS: Must be 0 words. Move straight to tool calls.
 - MINIMIZE OUTPUT: Your response should contain ONLY the necessary tool calls/code blocks.
 - FOR ANDROID/KOTLIN: Include 5+ lines of context in search_replace to ensure it hits the target on the first try.
+- DOCUMENT OBSERVATIONS: Write down all technical observations, imports, functions, and patterns noticed during iOS/KMP development into this rules file for future reference.
 
-# Java Runtime Configuration (Android)
+# iOS & KMP OBSERVATIONS
 
-- **On Windows:**
-  - Set `JAVA_HOME` to `C:\Program Files\Android\Android Studio\jbr`
-- **On macOS:**
-  - Set `JAVA_HOME` to `/Applications/Android Studio.app/Contents/jbr/Contents/Home`
-  - This can be done by adding `export JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home` to your shell configuration file (e.g., `~/.zshrc` or `~/.bash_profile`) and then running `source` on the file.
+## iOS Platform Imports
+- `platform.Foundation.*` - Foundation framework (NSString, NSDictionary, NSData, etc.)
+- `platform.Security.*` - Security framework (SecItemAdd, SecItemCopyMatching, kSecClass, etc.)
+- `platform.CoreFoundation.*` - CoreFoundation framework (CFDictionaryRef, CFTypeRef, etc.)
+- `kotlinx.cinterop.*` - C interop utilities (memScoped, alloc, ptr, value, etc.)
+- `kotlinx.coroutines.*` - Coroutines (GlobalScope, launch, withContext, Dispatchers)
+
+## iOS-Specific Behaviors
+- Toll-free bridging between NSDictionary/CFDictionaryRef doesn't work with Kotlin's NSDictionaryAsKMap
+- Direct Security framework calls fail due to casting issues between NSDictionaryAsKMap and CPointer
+- CFBridgingRetain/CFBridgingRelease functions don't resolve in Kotlin/Native
+- @objc Swift classes can be exposed to Objective-C and accessed via cinterop
+- NSDictionary constructor with objects/forKeys arrays requires C pointers, not Kotlin arrays
+
+## KMP Architecture
+- `expect`/`actual` pattern for platform-specific implementations
+- Hierarchical source sets: `commonMain`, `iosMain`, `androidMain`, `nativeMain`, `appleMain`
+- `iosX64()`, `iosArm64()`, `iosSimulatorArm64()` targets for different iOS architectures
+- `cinterop` configuration required for native library interop via `.def` files
+- `kotlin.mpp.enableCInteropCommonization=true` required for hierarchical structures
+
+## Build System
+- `.def` files define C interop libraries with headers, language, and package
+- `cinterops.create("name")` or `val name by cinterops.creating` for cinterop setup
+- `definitionFile.set(file("path"))` to specify .def file location
+- Different HTTP clients: `io.ktor.client.engine.darwin.Darwin` for iOS, `okhttp` for Android
+
+## Runtime Patterns
+- `@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)` for experimental C interop
+- `@DelicateCoroutinesApi` annotation for GlobalScope.launch
+- `memScoped { }` for memory-safe C interop operations
+- `GlobalScope.launch { }` for fire-and-forget background operations on iOS
+- Platform-specific logging with `ru.fromchat.core.Logger`
+
+## C Interop Gotchas
+- NSDictionaryAsKMap (Kotlin's internal NSDictionary wrapper) ≠ NSDictionary (Foundation object)
+- Security framework expects strict CFDictionaryRef types, not NSDictionary toll-free bridging
+- C interop paths must be relative to the .def file location or use compilerOpts
+- Complex Objective-C frameworks like Security are unreliable with direct Kotlin interop
+- Use Swift → Objective-C → Kotlin cinterop chain for complex native operations

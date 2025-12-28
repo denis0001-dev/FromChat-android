@@ -208,9 +208,7 @@ fun SettingsTab(
                             scope.launch {
                                 // Logout
                                 try {
-                                    ApiClient.token?.let { token ->
-                                        ApiClient.logout(token)
-                                    }
+                                    ApiClient.logout()
                                 } catch (e: Exception) {
                                     // Ignore logout errors
                                 }

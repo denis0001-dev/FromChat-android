@@ -12,6 +12,5 @@ import com.pr0gramm3r101.utils.UtilsLibrary
 object DataStoreSingleton {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
     
-    val dataStore: DataStore<Preferences>
-        get() = UtilsLibrary.context.dataStore
+    val dataStore get() = UtilsLibrary.context.dataStore
 }

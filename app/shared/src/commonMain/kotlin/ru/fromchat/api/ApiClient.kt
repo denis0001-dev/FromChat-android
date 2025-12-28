@@ -1,8 +1,12 @@
 package ru.fromchat.api
 
+import com.pr0gramm3r101.utils.settings.secureSettings
+import com.pr0gramm3r101.utils.settings.settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
@@ -20,7 +24,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.core.config.Config
-import ru.fromchat.utils.failOnError
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -52,6 +55,36 @@ object ApiClient {
         install(WebSockets) {
             pingInterval = 5000.milliseconds // Send a ping every 5 seconds to keep the connection alive
         }
+
+        // Set default auth header for all requests
+        defaultRequest {
+            token?.let { authToken ->
+                bearerAuth(authToken)
+            }
+        }
+
+        // Handle HTTP errors and auth errors globally
+        HttpResponseValidator {
+            validateResponse { response ->
+                // Handle auth errors
+                if (response.status.value == 401 || response.status.value == 403) {
+                    // Clear invalid token and notify about auth error
+                    token = null
+                    user = null
+                    onAuthError?.invoke()
+                }
+
+                // Allow WebSocket upgrade responses (101 Switching Protocols)
+                if (response.status.value == 101) {
+                    return@validateResponse
+                }
+
+                // Throw exception for non-2xx status codes (like failOnError())
+                if (response.status.value !in 200..299) {
+                    throw io.ktor.client.plugins.ClientRequestException(response, response.status.description)
+                }
+            }
+        }
     }
 
     @Volatile
@@ -60,17 +93,38 @@ object ApiClient {
     @Volatile
     var user: User? = null
 
+    // Global auth error handler
+    var onAuthError: (() -> Unit)? = null
+
+    // Load persisted token and user info
+    suspend fun loadPersistedData() {
+        try {
+            val savedToken = secureSettings.getString("auth_token", "")
+            token = savedToken
+            if (!token.isNullOrEmpty()) {
+                val userInfo = settings.getString("user_info", "")
+                if (userInfo.isNotEmpty()) {
+                    user = json.decodeFromString(userInfo)
+                }
+            }
+        } catch (e: Exception) {
+            ru.fromchat.core.Logger.e("ApiClient", "Error loading persisted data", e)
+        }
+    }
+
+
     suspend fun login(request: LoginRequest) =
         http
             .post("${Config.apiBaseUrl}/login") {
                 contentType(ContentType.Application.Json)
-                setBody(request.also { ru.fromchat.core.Logger.d("ApiClient", "Login request: $it") })
+                setBody(request)
             }
-            .failOnError()
             .body<LoginResponse>()
             .also {
                 token = it.token
                 user = it.user
+                secureSettings.putString("auth_token", it.token)
+                settings.putString("user_info", json.encodeToString(it.user))
             }
 
     suspend fun register(request: RegisterRequest) =
@@ -79,39 +133,55 @@ object ApiClient {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
-            .failOnError()
 
     suspend fun getMessages(limit: Int = 50, beforeId: Int? = null) =
         http
             .get("${Config.apiBaseUrl}/get_messages") {
                 contentType(ContentType.Application.Json)
-                bearerAuth(token ?: throw IllegalStateException("Not authenticated"))
                 parameter("limit", limit)
                 beforeId?.let { parameter("before_id", it) }
             }
-            .failOnError()
             .body<MessagesResponse>()
 
     suspend fun send(message: String) =
         http
             .post("${Config.apiBaseUrl}/send_message") {
                 contentType(ContentType.Application.Json)
-                bearerAuth(token!!)
                 setBody(SendMessageRequest(message))
             }
-            .failOnError()
             .body<SendMessageResponse>()
 
-
-    suspend fun logout(authToken: String) {
-        // Don't throw on logout errors, just try to logout
+    // Validate token by fetching user profile
+    suspend fun validateToken(): Boolean {
         try {
-            http.get("${Config.apiBaseUrl}/logout") {
-                bearerAuth(authToken)
+            http
+                .get("${Config.apiBaseUrl}/api/user/profile")
+            return true // Token is valid if no exception thrown
+        } catch (e: io.ktor.client.plugins.ClientRequestException) {
+            // Check if it's an auth error (401/403)
+            if (e.response.status.value == 401 || e.response.status.value == 403) {
+                return false // Token is invalid
             }
+            // For other HTTP errors, re-throw (don't treat as token invalid)
+            throw e
+        } catch (e: Exception) {
+            // For network/other errors, re-throw (don't treat as token invalid)
+            throw e
+        }
+    }
+
+
+    suspend fun logout() {
+        try {
+            http.get("${Config.apiBaseUrl}/logout")
         } catch (e: Exception) {
             // Ignore logout errors
         }
+
+        secureSettings.remove("auth_token")
+        settings.remove("user_info")
+        token = null
+        user = null
     }
 
     // WebSocket send helpers
