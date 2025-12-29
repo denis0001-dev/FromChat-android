@@ -73,7 +73,8 @@ import ru.fromchat.ui.LocalNavController
 fun ChatScreen(
     panel: ChatPanel,
     currentUserId: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    scrollToMessageId: Int? = null
 ) {
     var panelState by remember(panel) { mutableStateOf(panel.getState()) }
     
@@ -103,6 +104,22 @@ fun ChatScreen(
     val currentTypingUsers = panelState.typingUsers // Directly use from panelState
     LaunchedEffect(currentTypingUsers) {
         Logger.d("ChatScreen", "currentTypingUsers updated (from panelState): ${currentTypingUsers.map { it.username }}")
+    }
+
+    // Scroll to specific message when requested (e.g., from notification click)
+    LaunchedEffect(scrollToMessageId, panelState.messages) {
+        scrollToMessageId?.let { messageId ->
+            val messages = panelState.messages
+            val messageIndex = messages.indexOfFirst { it.id == messageId }
+            if (messageIndex != -1) {
+                scope.launch {
+                    listState.animateScrollToItem(
+                        index = messages.size - 1 - messageIndex,
+                        scrollOffset = 0
+                    )
+                }
+            }
+        }
     }
 
     // UI state
@@ -307,16 +324,14 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(), // Fill the entire space of the Box
-                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom),
-                    reverseLayout = true
+                    verticalArrangement = Arrangement.spacedBy(4.dp, alignment = Alignment.Bottom)
                 ) {
-                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
+                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
 
                     items(
-                        items = panelState.messages.reversed(),
+                        items = panelState.messages,
                         key = { it.id }
                     ) { message ->
-                        val isAuthor = message.user_id == currentUserId
                         var messagePosition by remember { mutableStateOf(IntOffset(0, 0)) }
                         var tapOffset by remember { mutableStateOf(Offset(0f, 0f)) }
 
@@ -332,7 +347,7 @@ fun ChatScreen(
                         ) {
                             MessageItem(
                                 message = message,
-                                isAuthor = isAuthor,
+                                isAuthor = message.user_id == currentUserId,
                                 onLongPress = {
                                     contextMenuState = ContextMenuState(
                                         isOpen = true,
@@ -350,7 +365,7 @@ fun ChatScreen(
                         }
                     }
 
-                    item { Spacer(Modifier.height(innerPadding.calculateTopPadding())) } // Spacer for TopAppBar
+                    item { Spacer(Modifier.height(innerPadding.calculateBottomPadding())) } // Spacer for chat input
                 }
             }
 

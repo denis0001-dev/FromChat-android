@@ -172,7 +172,9 @@ fun RegisterScreen(
                                     onError = { message, _ ->
                                         alert = message
                                     },
-                                    onSuccess = { onRegistered() }
+                                    onSuccess = {
+                                        onRegistered()
+                                    }
                                 ) {
                                     ApiClient.register(
                                         RegisterRequest(

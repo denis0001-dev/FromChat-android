@@ -33,7 +33,7 @@ import ru.fromchat.ui.setup.ServerConfigScreen
 val LocalNavController = compositionLocalOf<NavController> { error("NavController not provided") }
 
 @Composable
-fun App() {
+fun App(scrollToMessageId: Int? = null, startAtPublicChat: Boolean = false) {
     var startDestination by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -46,10 +46,11 @@ fun App() {
 
         // Now determine start destination based on loaded token
         val hasToken = ApiClient.token?.isNotEmpty() == true
-        startDestination = if (hasToken) "chat" else "login"
-
-        ru.fromchat.core.Logger.d("App", "Navigation decision - hasToken: $hasToken, token: ${ApiClient.token?.take(10) ?: "null"}")
-        ru.fromchat.core.Logger.d("App", "Starting at screen: $startDestination")
+        startDestination = when {
+            hasToken && startAtPublicChat -> "chats/publicChat"
+            hasToken && !startAtPublicChat -> "chat"
+            else -> "login"
+        }
     }
 
     // Observe lifecycle events to manage WebSocket connection
@@ -77,7 +78,17 @@ fun App() {
 
     FromChatTheme {
         val navController = rememberNavController()
-        val animationSpec = tween<IntOffset>(400)
+
+        // Handle navigation to public chat when requested (e.g., from notification)
+        LaunchedEffect(startAtPublicChat) {
+            if (startAtPublicChat && navController.currentDestination?.route != "chats/publicChat") {
+                navController.navigate("chats/publicChat") {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+
 
         // Set up global auth error handler
         LaunchedEffect(navController) {
@@ -93,73 +104,75 @@ fun App() {
             LocalNavController provides navController
         ) {
             if (startDestination != null) {
+                val animationSpec = tween<IntOffset>(400)
+
                 NavHost(
                     navController = navController,
                     startDestination = startDestination!!,
-                enterTransition = {
-                    slideIntoContainer(
-                        Start,
-                        animationSpec = animationSpec
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        Start,
-                        animationSpec = animationSpec
-                    )
-                },
-                popEnterTransition = {
-                    slideIntoContainer(
-                        End,
-                        animationSpec = animationSpec
-                    )
-                },
-                popExitTransition = {
-                    slideOutOfContainer(
-                        End,
-                        animationSpec = animationSpec
-                    )
-                }
-            ) {
-                composable("serverConfig") {
-                    ServerConfigScreen()
-                }
+                    enterTransition = {
+                        slideIntoContainer(
+                            Start,
+                            animationSpec = animationSpec
+                        )
+                    },
+                    exitTransition = {
+                        slideOutOfContainer(
+                            Start,
+                            animationSpec = animationSpec
+                        )
+                    },
+                    popEnterTransition = {
+                        slideIntoContainer(
+                            End,
+                            animationSpec = animationSpec
+                        )
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            End,
+                            animationSpec = animationSpec
+                        )
+                    }
+                ) {
+                    composable("serverConfig") {
+                        ServerConfigScreen()
+                    }
 
-                composable("login") {
-                    LoginScreen(
-                        onLoginSuccess = {
-                            navController.navigate("chat") {
-                                popUpTo("login") { inclusive = true }
+                    composable("login") {
+                        LoginScreen(
+                            onLoginSuccess = {
+                                navController.navigate("chat") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            },
+                            onNavigateToRegister = { navController.navigate("register") }
+                        )
+                    }
+
+                    composable("register") {
+                        RegisterScreen(
+                            onRegistered = { navController.navigate("login") }
+                        )
+                    }
+
+                    composable("chat") {
+                        MainScreen(
+                            onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo("chat") { inclusive = true }
+                                }
                             }
-                        },
-                        onNavigateToRegister = { navController.navigate("register") }
-                    )
-                }
+                        )
+                    }
 
-                composable("register") {
-                    RegisterScreen(
-                        onRegistered = { navController.navigate("login") }
-                    )
-                }
+                    composable("chats/publicChat") {
+                        PublicChatScreen(scrollToMessageId = scrollToMessageId)
+                    }
 
-                composable("chat") {
-                    MainScreen(
-                        onLogout = {
-                            navController.navigate("login") {
-                                popUpTo("chat") { inclusive = true }
-                            }
-                        }
-                    )
+                    composable("about") {
+                        AboutScreen()
+                    }
                 }
-
-                composable("chats/publicChat") {
-                    PublicChatScreen()
-                }
-
-                composable("about") {
-                    AboutScreen()
-                }
-            }
             }
         }
     }

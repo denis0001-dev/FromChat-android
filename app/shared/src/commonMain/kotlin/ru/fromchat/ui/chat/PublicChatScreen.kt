@@ -1,14 +1,16 @@
 package ru.fromchat.ui.chat
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import ru.fromchat.api.ApiClient
+import ru.fromchat.ui.isPublicChatVisible
 
 @Composable
-fun PublicChatScreen() {
+fun PublicChatScreen(scrollToMessageId: Int? = null) {
     val scope = rememberCoroutineScope()
     val currentUserId = ApiClient.user?.id
 
@@ -28,10 +30,19 @@ fun PublicChatScreen() {
         }
     }
 
+    // Track visibility for notifications
+    DisposableEffect(Unit) {
+        isPublicChatVisible = true
+        onDispose {
+            isPublicChatVisible = false
+        }
+    }
+
     // Render with ChatScreen
     ChatScreen(
         panel = panel,
-        currentUserId = currentUserId
+        currentUserId = currentUserId,
+        scrollToMessageId = scrollToMessageId
     )
 }
 

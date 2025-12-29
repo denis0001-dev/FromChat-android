@@ -174,7 +174,9 @@ fun LoginScreen(
                                     onError = { message, _ ->
                                         alert = message
                                     },
-                                    onSuccess = { onLoginSuccess() }
+                                    onSuccess = {
+                                        onLoginSuccess()
+                                    }
                                 ) {
                                     ApiClient.login(LoginRequest(username.trim(), derived))
                                 }

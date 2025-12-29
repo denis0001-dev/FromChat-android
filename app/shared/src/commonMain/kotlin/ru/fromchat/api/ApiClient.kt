@@ -4,6 +4,7 @@ import com.pr0gramm3r101.utils.settings.secureSettings
 import com.pr0gramm3r101.utils.settings.settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -21,9 +22,12 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import ru.fromchat.core.config.Config
+import ru.fromchat.fcm.uploadPendingFcmTokenIfAvailable
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -53,10 +57,9 @@ object ApiClient {
         }
 
         install(WebSockets) {
-            pingInterval = 5000.milliseconds // Send a ping every 5 seconds to keep the connection alive
+            pingInterval = 5000.milliseconds
         }
 
-        // Set default auth header for all requests
         defaultRequest {
             token?.let { authToken ->
                 bearerAuth(authToken)
@@ -66,22 +69,21 @@ object ApiClient {
         // Handle HTTP errors and auth errors globally
         HttpResponseValidator {
             validateResponse { response ->
-                // Handle auth errors
                 if (response.status.value == 401 || response.status.value == 403) {
-                    // Clear invalid token and notify about auth error
                     token = null
                     user = null
-                    onAuthError?.invoke()
+                    onAuthError?.let {
+                        MainScope().launch {
+                            it()
+                        }
+                    }
                 }
 
-                // Allow WebSocket upgrade responses (101 Switching Protocols)
-                if (response.status.value == 101) {
-                    return@validateResponse
-                }
-
-                // Throw exception for non-2xx status codes (like failOnError())
-                if (response.status.value !in 200..299) {
-                    throw io.ktor.client.plugins.ClientRequestException(response, response.status.description)
+                if (response.status.value !in (200..299) + 101) {
+                    throw ClientRequestException(
+                        response,
+                        response.status.description
+                    )
                 }
             }
         }
@@ -125,14 +127,27 @@ object ApiClient {
                 user = it.user
                 secureSettings.putString("auth_token", it.token)
                 settings.putString("user_info", json.encodeToString(it.user))
+                settings.putInt("current_user_id", it.user.id)
+                // Upload any pending FCM token after successful login
+                MainScope().launch {
+                    runCatching {
+                        uploadPendingFcmTokenIfAvailable()
+                    }
+                }
             }
 
     suspend fun register(request: RegisterRequest) =
-        http
-            .post("${Config.apiBaseUrl}/register") {
-                contentType(ContentType.Application.Json)
-                setBody(request)
+        http.post("${Config.apiBaseUrl}/register") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.also {
+            // Upload any pending FCM token after successful registration
+            MainScope().launch {
+                runCatching {
+                    uploadPendingFcmTokenIfAvailable()
+                }
             }
+        }
 
     suspend fun getMessages(limit: Int = 50, beforeId: Int? = null) =
         http
@@ -143,56 +158,45 @@ object ApiClient {
             }
             .body<MessagesResponse>()
 
-    suspend fun send(message: String) =
-        http
-            .post("${Config.apiBaseUrl}/send_message") {
-                contentType(ContentType.Application.Json)
-                setBody(SendMessageRequest(message))
-            }
-            .body<SendMessageResponse>()
-
     // Validate token by fetching user profile
     suspend fun validateToken(): Boolean {
         try {
             http
                 .get("${Config.apiBaseUrl}/api/user/profile")
             return true // Token is valid if no exception thrown
-        } catch (e: io.ktor.client.plugins.ClientRequestException) {
-            // Check if it's an auth error (401/403)
+        } catch (e: ClientRequestException) {
             if (e.response.status.value == 401 || e.response.status.value == 403) {
-                return false // Token is invalid
+                return false
             }
-            // For other HTTP errors, re-throw (don't treat as token invalid)
+
             throw e
         } catch (e: Exception) {
-            // For network/other errors, re-throw (don't treat as token invalid)
             throw e
         }
     }
 
-
     suspend fun logout() {
-        try {
+        runCatching {
             http.get("${Config.apiBaseUrl}/logout")
-        } catch (e: Exception) {
-            // Ignore logout errors
         }
 
         secureSettings.remove("auth_token")
         settings.remove("user_info")
+        settings.remove("current_user_id")
         token = null
         user = null
     }
 
+    fun getTokenSafely() = token ?: throw IllegalStateException("Not authenticated")
+
     // WebSocket send helpers
     suspend fun sendMessage(content: String, replyToId: Int? = null, clientMessageId: String? = null) {
-        val token = token ?: throw IllegalStateException("Not authenticated")
         WebSocketManager.send(
             WebSocketMessage(
                 type = "sendMessage",
                 credentials = WebSocketCredentials(
                     scheme = "Bearer",
-                    credentials = token
+                    credentials = getTokenSafely()
                 ),
                 data = json.encodeToJsonElement(
                     WebSocketSendMessageRequest(
@@ -206,13 +210,12 @@ object ApiClient {
     }
 
     suspend fun editMessage(messageId: Int, content: String) {
-        val token = token ?: throw IllegalStateException("Not authenticated")
         WebSocketManager.send(
             WebSocketMessage(
                 type = "editMessage",
                 credentials = WebSocketCredentials(
                     scheme = "Bearer",
-                    credentials = token
+                    credentials = getTokenSafely()
                 ),
                 data = json.encodeToJsonElement(
                     WebSocketEditMessageRequest(
@@ -225,13 +228,12 @@ object ApiClient {
     }
 
     suspend fun deleteMessage(messageId: Int) {
-        val token = token ?: throw IllegalStateException("Not authenticated")
         WebSocketManager.send(
             WebSocketMessage(
                 type = "deleteMessage",
                 credentials = WebSocketCredentials(
                     scheme = "Bearer",
-                    credentials = token
+                    credentials = getTokenSafely()
                 ),
                 data = json.encodeToJsonElement(
                     WebSocketDeleteMessageRequest(
@@ -243,38 +245,30 @@ object ApiClient {
     }
 
     suspend fun sendTyping() {
-        val token = token ?: throw IllegalStateException("Not authenticated")
-        try {
+        runCatching {
             WebSocketManager.send(
                 WebSocketMessage(
                     type = "typing",
                     credentials = WebSocketCredentials(
                         scheme = "Bearer",
-                        credentials = token
+                        credentials = getTokenSafely()
                     )
                 )
             )
-        } catch (e: Exception) {
-            // Silently ignore if WebSocket is not connected yet
-            // Typing indicators are not critical
         }
     }
 
     suspend fun sendStopTyping() {
-        val token = token ?: throw IllegalStateException("Not authenticated")
-        try {
+        runCatching {
             WebSocketManager.send(
                 WebSocketMessage(
                     type = "stopTyping",
                     credentials = WebSocketCredentials(
                         scheme = "Bearer",
-                        credentials = token
+                        credentials = getTokenSafely()
                     )
                 )
             )
-        } catch (e: Exception) {
-            // Silently ignore if WebSocket is not connected yet
-            // Typing indicators are not critical
         }
     }
 }

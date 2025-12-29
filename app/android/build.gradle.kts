@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.google.services)
 }
 
 kotlin {
@@ -111,6 +112,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.play.services.base)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.adaptive.android)
@@ -118,7 +120,12 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.slf4j.android)
     implementation(libs.material)
+    implementation(libs.firebase.messaging)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(project(":app:shared"))
     implementation(project(":utils:shared"))
 }
+
+// Process `google-services.json` into resources so Firebase initializes automatically.
+apply(plugin = "com.google.gms.google-services")

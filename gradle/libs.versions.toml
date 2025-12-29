@@ -8,6 +8,8 @@ compose-multiplatform = "1.9.3"
 #noinspection NewerVersionAvailable
 constraintlayout = "0.6.1-shaded"
 coreSplashscreen = "1.2.0"
+firebaseMessaging = "25.0.1"
+googleServices = "4.4.4"
 haze = "1.7.1"
 kotlin = "2.3.0"
 adaptiveAndroid = "1.2.0"
@@ -30,6 +32,7 @@ slf4j = "1.7.36"
 kotlinxDatetime = "0.7.1"
 lifecycleRuntimeKtx = "2.10.0"
 composeBom = "2025.12.01"
+playServicesBase = "18.9.0"
 
 [libraries]
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
@@ -39,6 +42,8 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
 constraintlayout = { module = "tech.annexflow.compose:constraintlayout-compose-multiplatform", version.ref = "constraintlayout" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
+google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 jetbrains-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
@@ -74,6 +79,7 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+play-services-base = { group = "com.google.android.gms", name = "play-services-base", version.ref = "playServicesBase" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -84,3 +90,4 @@ android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version = "2.3.0" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serialization" }
+google-services = { id = "com.google.gms.google-services" }
