@@ -16,6 +16,7 @@ When working with the mobile app:
 - MINIMIZE OUTPUT: Your response should contain ONLY the necessary tool calls/code blocks.
 - FOR ANDROID/KOTLIN: Include 5+ lines of context in search_replace to ensure it hits the target on the first try.
 - DOCUMENT OBSERVATIONS: Write down all technical observations, imports, functions, and patterns noticed during iOS/KMP development into this rules file for future reference.
+- DO NOT clean any caches.
 
 # iOS & KMP OBSERVATIONS
 

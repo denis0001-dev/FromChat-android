@@ -54,6 +54,7 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(libs.haze)
             implementation(libs.haze.materials)
+            implementation(libs.androidx.core.ktx)
 
             // Serialization
             implementation(libs.kotlinx.serialization.json)
