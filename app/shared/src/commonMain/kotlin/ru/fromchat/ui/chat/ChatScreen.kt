@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,7 +78,7 @@ fun ChatScreen(
     scrollToMessageId: Int? = null
 ) {
     var panelState by remember(panel) { mutableStateOf(panel.getState()) }
-    
+
     // Observe state changes
     LaunchedEffect(panel) {
         panel.setOnStateChange { newState ->
@@ -89,7 +90,7 @@ fun ChatScreen(
         // Initial state
         panelState = panel.getState()
     }
-    
+
     // Debug: Log state changes
     LaunchedEffect(panelState.messages.size) {
         Logger.d("ChatScreen", "Messages count changed: ${panelState.messages.size}")
@@ -101,32 +102,16 @@ fun ChatScreen(
     val navController = LocalNavController.current
     val hazeState = rememberHazeState(blurEnabled = true)
 
-    val currentTypingUsers = panelState.typingUsers // Directly use from panelState
-    LaunchedEffect(currentTypingUsers) {
-        Logger.d("ChatScreen", "currentTypingUsers updated (from panelState): ${currentTypingUsers.map { it.username }}")
-    }
-
-    // Scroll to specific message when requested (e.g., from notification click)
-    LaunchedEffect(scrollToMessageId, panelState.messages) {
-        scrollToMessageId?.let { messageId ->
-            val messages = panelState.messages
-            val messageIndex = messages.indexOfFirst { it.id == messageId }
-            if (messageIndex != -1) {
-                scope.launch {
-                    listState.animateScrollToItem(
-                        index = messages.size - 1 - messageIndex,
-                        scrollOffset = 0
-                    )
-                }
-            }
-        }
-    }
+    // Track initial load state and new messages for smooth scrolling
+    var isInitialLoad by remember { mutableStateOf(true) }
+    var lastMessageCount by remember { mutableStateOf(0) }
+    var newlyAddedMessageIds by remember { mutableStateOf(setOf<Int>()) }
 
     // UI state
     var inputText by rememberSaveable { mutableStateOf("") }
     var replyTo by rememberSaveable { mutableStateOf<Message?>(null) }
     var editingMessage by rememberSaveable { mutableStateOf<Message?>(null) }
-    var contextMenuState by remember { 
+    var contextMenuState by remember {
         mutableStateOf(
             ContextMenuState(
                 isOpen = false,
@@ -135,6 +120,12 @@ fun ChatScreen(
             )
         )
     }
+
+    val currentTypingUsers = panelState.typingUsers // Directly use from panelState
+    LaunchedEffect(currentTypingUsers) {
+        Logger.d("ChatScreen", "currentTypingUsers updated (from panelState): ${currentTypingUsers.map { it.username }}")
+    }
+
     // Collect WebSocket messages
     LaunchedEffect(Unit) {
         WebSocketManager.messages.collect { message ->
@@ -191,12 +182,74 @@ fun ChatScreen(
         }
     }
 
-    // Scroll to bottom when new messages arrive
-    LaunchedEffect(panelState.messages.size) {
-        if (panelState.messages.isNotEmpty()) {
-            scope.launch {
-                listState.animateScrollToItem(panelState.messages.size - 1)
+    // Track if user is at bottom for auto-scroll decisions
+    // Use derivedStateOf to avoid frequent recompositions on every scroll change
+    val isAtBottom by remember {
+        derivedStateOf {
+            if (panelState.messages.isNotEmpty()) {
+                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+                val totalItems = panelState.messages.size - 1
+                lastVisibleItem?.index == totalItems
+            } else {
+                true
             }
+        }
+    }
+
+    // Scroll to specific message when requested (e.g., from notification click)
+    LaunchedEffect(scrollToMessageId, panelState.messages) {
+        scrollToMessageId?.let { messageId ->
+            val messages = panelState.messages
+            val messageIndex = messages.indexOfFirst { it.id == messageId }
+            if (messageIndex != -1) {
+                scope.launch {
+                    listState.scrollToItem(
+                        index = messages.size - 1 - messageIndex,
+                        scrollOffset = 0
+                    )
+                }
+            }
+        }
+    }
+
+    // Handle message count changes for smooth scrolling and animations
+    LaunchedEffect(panelState.messages.size) {
+        val currentMessageCount = panelState.messages.size
+        val previousMessageCount = lastMessageCount
+
+        if (previousMessageCount in 1..<currentMessageCount) {
+            // New messages added (not initial load)
+            val newMessageCount = currentMessageCount - previousMessageCount
+            val newMessages = panelState.messages.takeLast(newMessageCount)
+
+            // Mark these messages as newly added for animation
+            newlyAddedMessageIds = newMessages.map { it.id }.toSet()
+
+            // Auto-scroll with spring animation if user is at bottom
+            if (isAtBottom && currentMessageCount > 0) {
+                scope.launch {
+                    listState.animateScrollToItem(
+                        index = currentMessageCount - 1
+                    )
+                }
+            }
+        } else if (currentMessageCount > 0 && isInitialLoad) {
+            // Initial load - scroll instantly to bottom
+            scope.launch {
+                listState.scrollToItem(currentMessageCount - 1)
+                isInitialLoad = false
+            }
+        }
+
+        lastMessageCount = currentMessageCount
+    }
+
+    // Clear newly added message IDs after animation delay
+    LaunchedEffect(newlyAddedMessageIds) {
+        val ids = newlyAddedMessageIds
+        if (ids.isNotEmpty()) {
+            kotlinx.coroutines.delay(600) // Animation duration + buffer
+            newlyAddedMessageIds = emptySet()
         }
     }
 
@@ -348,6 +401,7 @@ fun ChatScreen(
                             MessageItem(
                                 message = message,
                                 isAuthor = message.user_id == currentUserId,
+                                isNewlyAdded = newlyAddedMessageIds.contains(message.id),
                                 onLongPress = {
                                     contextMenuState = ContextMenuState(
                                         isOpen = true,

@@ -1,11 +1,14 @@
 package ru.fromchat.ui.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -26,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -47,24 +51,35 @@ import kotlin.time.Instant
 fun MessageItem(
     message: Message,
     isAuthor: Boolean,
+    isNewlyAdded: Boolean = false,
     onLongPress: () -> Unit,
     onTapPosition: (Offset) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
-            initialOffsetY = { 20 },
-            animationSpec = tween(300)
-        ),
-        exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(
-            targetOffsetY = { -10 },
-            animationSpec = tween(200)
-        ),
+    val slideOffset = remember { Animatable(if (isNewlyAdded) 100f else 0f) }
+
+    // Animate slide-in for newly added messages
+    LaunchedEffect(isNewlyAdded) {
+        if (isNewlyAdded) {
+            slideOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 400, easing = androidx.compose.animation.core.EaseOutCubic)
+            )
+        }
+    }
+
+    Box(
         modifier = modifier
     ) {
+        // Apply slide animation only for newly added messages
+        val animatedModifier = if (isNewlyAdded) {
+            Modifier.offset(y = slideOffset.value.dp)
+        } else {
+            Modifier
+        }
+
         Row(
-            modifier = Modifier
+            modifier = animatedModifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp)
                 .pointerInput(Unit) {
@@ -241,7 +256,6 @@ fun MessageItem(
     }
 }
 
-@ExperimentalTime
 private fun formatTime(timestamp: String): String {
     return try {
         Instant.parse(timestamp).toLocalDateTime(TimeZone.currentSystemDefault()).let {
